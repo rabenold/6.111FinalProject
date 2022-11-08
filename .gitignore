@@ -172,3 +172,9 @@ dmypy.json
  
 # Cython debug symbols
 cython_debug/
+
+
+# Verilog output
+
+*.vcd
+*.out
