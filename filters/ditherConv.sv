@@ -17,65 +17,78 @@ module ditherConv #(
     );
 
     parameter MIDPOINT = 128;
+    parameter MAX_VAL = 255;
     parameter WIDTH = 10;
-    xilinx_true_dual_port_read_first_1_clock_ram #(.RAM_WIDTH(WIDTH), .RAM_DEPTH(320)) pixel1(
-    .addra(hcount_in),     // Address bus, width determined from RAM_DEPTH
-    .dina(pixel_data_in),       // RAM input data, width determined from RAM_WIDTH
+
+    logic[10:0] line1_read;
+    // logic[10:0] line2_read;
+
+    logic[10:0] line1_writeOut;
+    // logic[10:0] line2_writeOut;
+    xilinx_true_dual_port_read_first_1_clock_ram #(.RAM_WIDTH(WIDTH), .RAM_DEPTH(320)) line1(
+    .addra(hcount_pipe[1]),     // Address bus, width determined from RAM_DEPTH
+    .dina(0),       // RAM input data, width determined from RAM_WIDTH
     .clka(clk_in),       // Clock
-    .wea(data_valid_in & write_vals[3]),         // Write enable
+    .wea(1'b0),         // Write enable
     .ena(1'b1),         // RAM Enable, for additional power savings, disable port when not in use
     .rsta(rst_in),       // Output reset (does not affect memory contents)
     .regcea(1'b1),   // Output register enable
-    .douta(output_pipe[0]),      // RAM output data, width determined from RAM_WIDTH
-    .addrb(hcount_in),     // Address bus, width determined from RAM_DEPTH
-    .dinb(pixel_data_in),       // RAM input data, width determined from RAM_WIDTH
-    .web(data_valid_in & write_vals[3]),         // Write enable
+    .douta(line1_read),      // RAM output data, width determined from RAM_WIDTH
+
+    .addrb(hcount_pipe[0]),     // Address bus, width determined from RAM_DEPTH
+    .dinb(bottom_Offsets[0]),       // RAM input data, width determined from RAM_WIDTH
+    .web(1'b1),         // Write enable
     .enb(1'b1),         // RAM Enable, for additional power savings, disable port when not in use
     .rstb(rst_in),       // Output reset (does not affect memory contents)
     .regceb(1'b1),   // Output register enable
-    .doutb(output_pipe[0])      // RAM output data, width determined from RAM_WIDTH
+    .doutb(line1_writeOut)      // RAM output data, width determined from RAM_WIDTH
     );
+
+    // xilinx_true_dual_port_read_first_1_clock_ram #(.RAM_WIDTH(WIDTH), .RAM_DEPTH(320)) line2(
+    // .addra(hcount_in+1),     // Address bus, width determined from RAM_DEPTH
+    // .dina(0),       // RAM input data, width determined from RAM_WIDTH
+    // .clka(clk_in),       // Clock
+    // .wea(1'b0),         // Write enable
+    // .ena(1'b1),         // RAM Enable, for additional power savings, disable port when not in use
+    // .rsta(rst_in),       // Output reset (does not affect memory contents)
+    // .regcea(1'b1),   // Output register enable
+    // .douta(line1_read),      // RAM output data, width determined from RAM_WIDTH
+
+    // .addrb(hcount_in-1),     // Address bus, width determined from RAM_DEPTH
+    // .dinb(bottom_Offsets[0]),       // RAM input data, width determined from RAM_WIDTH
+    // .web(1'b1),         // Write enable
+    // .enb(1'b1),         // RAM Enable, for additional power savings, disable port when not in use
+    // .rstb(rst_in),       // Output reset (does not affect memory contents)
+    // .regceb(1'b1),   // Output register enable
+    // .doutb(line1_writeOut)      // RAM output data, width determined from RAM_WIDTH
+    // );
    
     // Your code here!
     logic signed [10:0] errorOffset;
     logic signed [10:0] nextOffset;
-
     logic signed [2:0][10:0] bottom_Offsets;
-
     logic signed [10:0] current_pixel;
+    logic signed [10:0] final_error;
+    logic signed [10:0] error_input;
 
+    assign final_error = errorOffset+nextOffset+current_pixel;
 
-
-    // kernels #(.K_SELECT(K_SELECT)) filtKernel(.rst_in(rst_in),
-    // .coeffs(coeffs), .shift(shift), .offset(offset));
-    logic[1:0] [10:0] hcount_pipe;
-    logic[1:0] [9:0] vcount_pipe;
-    logic signed [15:0] r_top, g_top, b_top, r_mid, g_mid, b_mid, r_bot, g_bot, b_bot;
-
-    always @(*) begin
-        b_top = ($signed({1'b0, mat[0][0][4:0]}) * $signed(coeffs[0][0])) + ($signed({1'b0, mat[0][1][4:0]}) * $signed(coeffs[0][1])) + ($signed({1'b0, mat[0][2][4:0]}) * $signed(coeffs[0][2]));
-        g_top = ($signed({1'b0, mat[0][0][10:5]}) * $signed(coeffs[0][0])) + ($signed({1'b0, mat[0][1][10:5]}) * $signed(coeffs[0][1])) + ($signed({1'b0, mat[0][2][10:5]}) * $signed(coeffs[0][2]));
-        r_top = ($signed({1'b0, mat[0][0][15:11]}) * $signed(coeffs[0][0])) + ($signed({1'b0, mat[0][1][15:11]}) * $signed(coeffs[0][1])) + ($signed({1'b0, mat[0][2][15:11]}) * $signed(coeffs[0][2]));
-        
-        b_mid = ($signed({1'b0, mat[1][0][4:0]}) * $signed(coeffs[1][0])) + ($signed({1'b0, mat[1][1][4:0]}) * $signed(coeffs[1][1])) + ($signed({1'b0, mat[1][2][4:0]}) * $signed(coeffs[1][2]));
-        g_mid = ($signed({1'b0, mat[1][0][10:5]}) * $signed(coeffs[1][0])) + ($signed({1'b0, mat[1][1][10:5]}) * $signed(coeffs[1][1])) + ($signed({1'b0, mat[1][2][10:5]}) * $signed(coeffs[1][2]));
-        r_mid = ($signed({1'b0, mat[1][0][15:11]}) * $signed(coeffs[1][0])) + ($signed({1'b0, mat[1][1][15:11]}) * $signed(coeffs[1][1])) + ($signed({1'b0, mat[1][2][15:11]}) * $signed(coeffs[1][2]));
-        
-        b_bot = ($signed({1'b0, mat[2][0][4:0]}) * $signed(coeffs[2][0])) + ($signed({1'b0, mat[2][1][4:0]}) * $signed(coeffs[2][1])) + ($signed({1'b0, mat[2][2][4:0]}) * $signed(coeffs[2][2]));
-        g_bot = ($signed({1'b0, mat[2][0][10:5]}) * $signed(coeffs[2][0])) + ($signed({1'b0, mat[2][1][10:5]}) * $signed(coeffs[2][1])) + ($signed({1'b0, mat[2][2][10:5]}) * $signed(coeffs[2][2]));
-        r_bot = ($signed({1'b0, mat[2][0][15:11]}) * $signed(coeffs[2][0])) + ($signed({1'b0, mat[2][1][15:11]}) * $signed(coeffs[2][1])) + ($signed({1'b0, mat[2][2][15:11]}) * $signed(coeffs[2][2]));
-        
-        
-    end
+    
 
     always_ff @(posedge clk_in) begin
         if(rst_in)begin
 
-        end else begin
+        end else if (data_valid_in) begin
             if(current_pixel+errorOffset+nextOffset < MIDPOINT)begin
-
+                nextOffset <= (final_error*7)>>>4;
+                bottom_Offsets[0] <= bottom_Offsets[1] + ((final_error*3)>>>4);
+                bottom_Offsets[1] <= bottom_Offsets[2] + ((final_error*5)>>>4);
+                bottom_Offsets[2] <= ((final_error)>>>4);
             end else begin
-                
+                nextOffset <= ((final_error-MAX_VAL)*7)>>>4;
+                bottom_Offsets[0] <= bottom_Offsets[1] + (((final_error-MAX_VAL)*3)>>>4);
+                bottom_Offsets[1] <= bottom_Offsets[2] + (((final_error-MAX_VAL)*5)>>>4);
+                bottom_Offsets[2] <= ((final_error-MAX_VAL)>>>4);
             end
         end
     end
