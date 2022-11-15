@@ -18,7 +18,7 @@ module ditherConv #(
 
     parameter MIDPOINT = 128;
     parameter MAX_VAL = 255;
-    parameter WIDTH = 10;
+    parameter WIDTH = 11;
 
     logic[10:0] line1_read;
     // logic[10:0] line2_read;
@@ -32,8 +32,8 @@ module ditherConv #(
     logic [1:0][10:0] pixel_pipe;
 
     xilinx_true_dual_port_read_first_1_clock_ram #(.RAM_WIDTH(WIDTH), .RAM_DEPTH(320)) line(
-    .addra(hcount_pipe[2]),     // Address bus, width determined from RAM_DEPTH
-    .dina(0),       // RAM input data, width determined from RAM_WIDTH
+    .addra(hcount_pipe[0]),     // Address bus, width determined from RAM_DEPTH
+    .dina(11'b0),       // RAM input data, width determined from RAM_WIDTH
     .clka(clk_in),       // Clock
     .wea(1'b0),         // Write enable
     .ena(1'b1),         // RAM Enable, for additional power savings, disable port when not in use
@@ -41,16 +41,16 @@ module ditherConv #(
     .regcea(1'b1),   // Output register enable
     .douta(line1_read),      // RAM output data, width determined from RAM_WIDTH
 
-    .addrb(hcount_pipe[0]),     // Address bus, width determined from RAM_DEPTH
+    .addrb(hcount_pipe[2]),     // Address bus, width determined from RAM_DEPTH
     .dinb(bottom_Offsets[0]),       // RAM input data, width determined from RAM_WIDTH
-    .web(data_valid_in),         // Write enable
+    .web(1),         // Write enable
     .enb(1'b1),         // RAM Enable, for additional power savings, disable port when not in use
     .rstb(rst_in),       // Output reset (does not affect memory contents)
     .regceb(1'b1),   // Output register enable
     .doutb(line1_writeOut)      // RAM output data, width determined from RAM_WIDTH
     );
 
-    // xilinx_true_dual_port_read_first_1_clock_ram #(.RAM_WIDTH(WIDTH), .RAM_DEPTH(320)) line2(
+    // xilinx_true_dual_port_read_first_1_clock_raiverilog -g2012 -o foo.out sim/foo_tb.sv src/foo.svm #(.RAM_WIDTH(WIDTH), .RAM_DEPTH(320)) line2(
     // .addra(hcount_in+1),     // Address bus, width determined from RAM_DEPTH
     // .dina(0),       // RAM input data, width determined from RAM_WIDTH
     // .clka(clk_in),       // Clock
@@ -74,11 +74,11 @@ module ditherConv #(
     logic signed [10:0] errorOffset;
 
     logic signed [10:0] nextOffset;
-    logic signed [2:0][10:0] bottom_Offsets;
+    logic signed [2:0][10:0] bottom_Offsets = 0;
     logic signed [10:0] current_pixel;
 
     assign final_error = errorOffset+nextOffset+current_pixel;
-    assign error_Offset = $signed(line1_read);
+    assign errorOffset = $signed(line1_read);
 
     always_ff @(posedge clk_in) begin
         if(rst_in)begin
@@ -94,8 +94,8 @@ module ditherConv #(
 
             current_pixel<= pixel_pipe[0];
 
-            pixel_pipe <= {data_in,pixel_pipe[1]}
-            hcount_pipe <= {hcount_in, hcount_pipe[1:0]};
+            pixel_pipe <= {data_in,pixel_pipe[1]};
+            hcount_pipe <= {hcount_pipe[1:0], hcount_in};
             vcount_pipe <= {vcount_in, vcount_pipe[1]};
             valid_pipe <= {data_valid_in, valid_pipe[1]};
 
