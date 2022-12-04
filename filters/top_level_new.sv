@@ -4,7 +4,7 @@
 module top_level(
   input wire clk_100mhz, //clock @ 100 mhz
   input wire [15:0] sw, //switches
-  input wire btnc, //btnc (used for reset)
+  input wire btnc, btnu, //btnc (used for reset)
 
   input wire [7:0] ja, //lower 8 bits of data from camera
   input wire [2:0] jb, //upper three bits from camera (return clock, vsync, hsync)
@@ -154,6 +154,7 @@ module top_level(
   logic [15:0] pixel_data_fmux; //pixel data from filter mux
   logic data_valid_fmux; //data valid from filter mux
 
+
   //recovers hcount and vcount from camera module:
   //generates data and a valid signal on 65 MHz
   recover recover_m (
@@ -184,6 +185,10 @@ module top_level(
     .hcount_out(hcount_f0),
     .vcount_out(vcount_f0)
   );
+
+
+
+
   generate
     genvar i;
     for (i=0; i<6; i=i+1)begin
