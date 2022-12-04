@@ -59,7 +59,7 @@ module start_screen
         else begin
             btnc_was_pressed <= btnc_pressed && sw_state ? 1 : btnc_was_pressed;
             if(!btnc_was_pressed)
-                pixel_out <= sw_state ? (pixel_out_puck | pixel_out_puck2 | cam_img) : (pixel_out_puck | cam_img);
+                pixel_out <= sw_state ? (pixel_out_puck | pixel_out_puck2) : (pixel_out_puck);
             else pixel_out <=12'b0; 
         end
    end 
