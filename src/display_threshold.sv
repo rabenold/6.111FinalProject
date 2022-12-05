@@ -20,7 +20,7 @@ module display_threshold (
     logic [15:0] arrow_pixel;
     logic [15:0] arrow_pixel_out;
 
-    up_arrow_sprite #(.WIDTH(100), .HEIGHT(100)) arrow (.pixel_clk_in(clk), .rst_in(rst), .x_in(arrow_x), .hcount_in(hcount_in), .y_in(arrow_y), .vcount_in(vcount_in), .pixel_out(arrow_pixel_out));
+    up_arrow_sprite #(.WIDTH(100), .HEIGHT(100)) arrow (.pixel_clk_in(clk_in), .rst_in(rst_in), .x_in(arrow_x), .hcount_in(hcount_in), .y_in(arrow_y), .vcount_in(vcount_in), .pixel_out(arrow_pixel_out));
   
     always_comb begin
       if (right_in) begin
@@ -65,16 +65,16 @@ module display_threshold (
         end
         else begin
             if (hcount_in >= 8 && hcount_in < 248 && vcount_in >= 200 && vcount_in < 520) begin //box 1
-                pixel_out <= (frame_buff_in < 800) : 0 ? 1;
+                pixel_out <= (frame_buff_in < 800) ? 0 : 1;
             end
             else if (hcount_in >= 264 && hcount_in < 504 && vcount_in >= 200 && vcount_in < 520) begin //box 2
-                pixel_out <= (frame_buff_in < 1600) : 0 ? 1;
+                pixel_out <= (frame_buff_in < 1600) ? 0 : 1;
             end
             else if (hcount_in >= 520 && hcount_in < 760 && vcount_in >= 200 && vcount_in < 520) begin //box 3
-                pixel_out <= (frame_buff_in < 2400) : 0 ? 1;
+                pixel_out <= (frame_buff_in < 2400) ? 0 : 1;
             end
             else if (hcount_in >= 776 && hcount_in < 1016 && vcount_in >= 200 && vcount_in < 520) begin //box 4
-                pixel_out <= (frame_buff_in < 3200) : 0 ? 1;
+                pixel_out <= (frame_buff_in < 3200) ? 0 : 1;
             end
 
             // draw black everywhere else 
