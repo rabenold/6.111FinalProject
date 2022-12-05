@@ -71,18 +71,7 @@ module top_level(
   logic [3:0] sel_channel; //selected channels four bit information intensity
   //sel_channel could contain any of the six color channels depend on selection
 
-  //Center of Mass variables
-  logic [10:0] x_com, x_com_calc; //long term x_com and output from module, resp
-  logic [9:0] y_com, y_com_calc; //long term y_com and output from module, resp
-  logic new_com; //used to know when to update x_com and y_com ...
-  //using x_com_calc and y_com_calc values
-
-  //output of image sprite
-  //Output of sprite that should be centered on Center of Mass (x_com, y_com):
-  logic [11:0] com_sprite_pixel;
-
-  //har value hot when hcount,vcount== (x_com, y_com)
-  logic crosshair;
+  
 
   //vga_mux output:
   logic [11:0] mux_pixel; //final 12 bit information from vga multiplexer
@@ -393,47 +382,22 @@ module top_level(
      .channel_out(sel_channel)
      );
 
-  //Center of Mass:
-  center_of_mass com_m(
-    .clk_in(clk_65mhz),
-    .rst_in(sys_rst),
-    .x_in(hcount_pipe[6]),  //TODO: needs to use pipelined signal! (PS3)
-    .y_in(vcount_pipe[6]), //TODO: needs to use pipelined signal! (PS3)
-    .valid_in(mask),
-    .tabulate_in((hcount==0 && vcount==0)),
-    .x_out(x_com_calc),
-    .y_out(y_com_calc),
-    .valid_out(new_com));
-
-  //update center of mass x_com, y_com based on new_com signal
-  always_ff @(posedge clk_65mhz)begin
-    if (sys_rst)begin
-      x_com <= 0;
-      y_com <= 0;
-    end if(new_com)begin
-      x_com <= x_com_calc;
-      y_com <= y_com_calc;
-    end
-  end
+  /
 
   //Image Sprite (your implementation from Lab03):
   //Latency 4 cycle
-  image_sprite #(
-    .WIDTH(256),
-    .HEIGHT(256))
-    com_sprite_m (
-    .pixel_clk_in(clk_65mhz),
-    .rst_in(sys_rst),
-    .hcount_in(hcount_pipe[2]),   //TODO: needs to use pipelined signal (PS1)
-    .vcount_in(vcount_pipe[2]),   //TODO: needs to use pipelined signal (PS1)
-    .x_in(x_com>128 ? x_com-128 : 0),
-    .y_in(y_com>128 ? y_com-128 : 0),
-    .pixel_out(com_sprite_pixel));
+  // image_sprite #(
+  //   .WIDTH(256),
+  //   .HEIGHT(256))
+  //   com_sprite_m (
+  //   .pixel_clk_in(clk_65mhz),
+  //   .rst_in(sys_rst),
+  //   .hcount_in(hcount_pipe[2]),   //TODO: needs to use pipelined signal (PS1)
+  //   .vcount_in(vcount_pipe[2]),   //TODO: needs to use pipelined signal (PS1)
+  //   .x_in(x_com>128 ? x_com-128 : 0),
+  //   .y_in(y_com>128 ? y_com-128 : 0),
+  //   .pixel_out(com_sprite_pixel));
 
-  //Create Crosshair patter on center of mass:
-  //0 cycle latency
-  assign crosshair = ((vcount==y_com)||(hcount==x_com));;
-  logic crosshair_pipe[3:0];
 
   //VGA MUX:
   //latency 0 cycles (combinational-only module)
@@ -448,15 +412,15 @@ module top_level(
   //    01: green crosshair on center of mass
   //    10: image sprite on top of center of mass
   //    11: all pink screen (for VGA functionality testing)
-  vga_mux (.sel_in(sw[9:6]),
-  .camera_pixel_in({full_pixel[15:12],full_pixel[10:7],full_pixel[4:1]}), //TODO: needs to use pipelined signal(PS5)
-  .camera_y_in(y[9:6]),
-  .channel_in(sel_channel),
-  .thresholded_pixel_in(mask),
-  .crosshair_in(crosshair_pipe[3]), //TODO: needs to use pipelined signal (PS4)
-  .com_sprite_pixel_in(com_sprite_pixel),
-  .pixel_out(mux_pixel)
-  );
+  // vga_mux (.sel_in(sw[9:6]),
+  // .camera_pixel_in({full_pixel[15:12],full_pixel[10:7],full_pixel[4:1]}), //TODO: needs to use pipelined signal(PS5)
+  // .camera_y_in(y[9:6]),
+  // .channel_in(sel_channel),
+  // .thresholded_pixel_in(mask),
+  // .crosshair_in(crosshair_pipe[3]), //TODO: needs to use pipelined signal (PS4)
+  // .com_sprite_pixel_in(com_sprite_pixel),
+  // .pixel_out(mux_pixel)
+  // );
 
 
   // UPDATE PIPELINES
@@ -471,10 +435,7 @@ module top_level(
       vcount_pipe[i] <= vcount_pipe[i-1];
     end
 
-    crosshair_pipe[0] <= crosshair;
-    for (int i=1; i<4; i = i+1)begin
-      crosshair_pipe[i] <= crosshair_pipe[i-1];
-    end
+    
 
     full_pixel_pipe[0] <= full_pixel;
     for (int i=1; i<3; i = i+1)begin
@@ -499,15 +460,30 @@ module top_level(
 
   //blankig logic.
   //latency 1 cycle
+  assign mux_pixel = {full_pixel[15:12],full_pixel[10:7],full_pixel[4:1]};
   always_ff @(posedge clk_65mhz)begin
-    vga_r <= ~blank_pipe[6]?mux_pixel[11:8]:0; //TODO: needs to use pipelined signal (PS6)
-    vga_g <= ~blank_pipe[6]?mux_pixel[7:4]:0;  //TODO: needs to use pipelined signal (PS6)
-    vga_b <= ~blank_pipe[6]?mux_pixel[3:0]:0;  //TODO: needs to use pipelined signal (PS6)
+    vga_r <= ~blank_pipe[3]?mux_pixel[3:0]:0; //TODO: needs to use pipelined signal (PS6)
+    vga_g <= ~blank_pipe[3]?mux_pixel[3:0]:0;  //TODO: needs to use pipelined signal (PS6)
+    vga_b <= ~blank_pipe[3]?mux_pixel[3:0]:0;  //TODO: needs to use pipelined signal (PS6)
+    // vga_r <= ~blank_pipe[6]?mux_pixel[11:8]:0; //TODO: needs to use pipelined signal (PS6)
+    // vga_g <= ~blank_pipe[6]?mux_pixel[7:4]:0;  //TODO: needs to use pipelined signal (PS6)
+    // vga_b <= ~blank_pipe[6]?mux_pixel[3:0]:0;  //TODO: needs to use pipelined signal (PS6)
   end
 
   assign vga_hs = ~hsync_pipe[7];  //TODO: needs to use pipelined signal (PS7)
   assign vga_vs = ~vsync_pipe[7];  //TODO: needs to use pipelined signal (PS7)
 
+
+
+  logic[2:0] photobooth_state
+  //////////STATE MACHINE////////////
+  always_ff  @(posedge clk_65mhz)begin
+    if(rst_in) begin
+    end else begin
+      if(photobooth_state ==0)begin
+      end
+    end
+  end
 endmodule
 
 
