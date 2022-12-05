@@ -5,6 +5,8 @@ module top_level(
   input wire clk_100mhz, //clock @ 100 mhz
   input wire [15:0] sw, //switches
   input wire btnc, //btnc (used for reset)
+  input wire btnl,
+  input wire btnr,
   input wire cpu_resetn,
   input wire [7:0] ja, //lower 8 bits of data from camera
   input wire [2:0] jb, //upper three bits from camera (return clock, vsync, hsync)
@@ -163,13 +165,13 @@ module top_level(
     .pixel_addr_in(pixel_addr_in));
   //grayscaling directly from camera 
 
-// ----------------- converting to grayscale here -------
- logic [7:0] red,green,blue;
- assign red = {pixel_rotate[15:11],2'b0};
- assign green = {pixel_rotate[10:5],1'b0};
- assign blue = {pixel_rotate[4:0],2'b0};
- logic [6:0] pix_data;
- assign pix_data = (red>>2)+(red>>5)+(red>>6)+(green>>1)+(green>>4)+(green>>5)+(blue>>3)+(blue>>5);
+  // ----------------- converting to grayscale here -------
+  logic [7:0] red,green,blue;
+  assign red = {pixel_rotate[15:11],2'b0};
+  assign green = {pixel_rotate[10:5],1'b0};
+  assign blue = {pixel_rotate[4:0],2'b0};
+  logic [6:0] pix_data;
+  assign pix_data = (red>>2)+(red>>5)+(red>>6)+(green>>1)+(green>>4)+(green>>5)+(blue>>3)+(blue>>5);
 
 
  //------------------ writing grayscaled pix into BRAM ------
@@ -247,10 +249,12 @@ module top_level(
     .frame_buff_in(frame_buff),
     .cam_out(full_pixel)
     );
-    logic [3:0] gray_out = full_pixel[4:1];
-    logic [11:0] pixel_out;
-    logic state_1;
-start_screen start_screen(
+
+
+  logic [3:0] gray_out = full_pixel[4:1];
+  logic [11:0] pixel_out;
+  logic state_1;
+  start_screen start_screen(
        .rst(sys_rst),
        .clk(clk_65mhz),
        .hcount(hcount_pipe[2]),
@@ -265,16 +269,20 @@ start_screen start_screen(
 // state_1 == 1 indicates the we are ready to start processing 
 
 
-
-
-
-
-
-
-
-
-
-
+  // logic [11:0] display_screen_pixel_out;
+  // logic [2:0] display_screen_select_out;
+  // display_filters display_filters(
+  //   .clk_in(clk_65mhz),
+  //   .rst_in(sys_rst),
+  //   .ready(state_1),
+  //   .hcount_in(hcount_pipe[2]),
+  //   .vcount_in(vcount_pipe[2]),
+  //   .left_in(btnl),
+  //   .right_in(btnr),
+  //   .frame_buff_in(frame_buff),
+  //   .pixel_out(display_screen_pixel_out),
+  //   .select_out(display_screen_select_out)
+  //   );
 
 
 
