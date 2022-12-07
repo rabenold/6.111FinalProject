@@ -255,10 +255,10 @@ module top_level(
   logic [11:0] pixel_out;
   logic state_1;
   start_screen start_screen(
-       .rst(sys_rst),
-       .clk(clk_65mhz),
-       .hcount(hcount_pipe[2]),
-       .vcount(vcount_pipe[2]),
+       .rst_in(sys_rst),
+       .clk_in(clk_65mhz),
+       .hcount_in(hcount_pipe[2]),
+       .vcount_in(vcount_pipe[2]),
        .cam_img(gray_out),
        .sw_state(sw[15]),
        .btnc_pressed(btnc),
