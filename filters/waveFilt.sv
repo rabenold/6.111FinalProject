@@ -4,7 +4,7 @@
 module waveFilt (
     input wire clk_in,
     input wire rst_in,
-    input wire [10:0] data_in,
+    input wire [6:0] data_in,
     input wire [10:0] hcount_in,
     input wire [9:0] vcount_in,
     input wire data_valid_in,
@@ -12,7 +12,7 @@ module waveFilt (
     output logic data_valid_out,
     output logic [10:0] hcount_out,
     output logic [9:0] vcount_out,
-    output logic [10:0] pixel_out
+    output logic [6:0] pixel_out
     );
 
     parameter HEIGHT = 320;

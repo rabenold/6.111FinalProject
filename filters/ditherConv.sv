@@ -1,8 +1,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module ditherConv #(
-    parameter K_SELECT=0)(
+module ditherConv (
     input wire clk_in,
     input wire rst_in,
     input wire [10:0] data_in,
