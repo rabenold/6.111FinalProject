@@ -477,6 +477,21 @@ module top_level(
 
 
 
+  logic [3:0] gray_out = full_pixel[4:1];
+  logic [11:0] pixel_out;
+  logic state_1;
+  start_screen start_screen(
+       .rst(sys_rst),
+       .clk(clk_65mhz),
+       .hcount(hcount_pipe[2]),
+       .vcount(vcount_pipe[2]), 
+       .cam_img(gray_out),
+       .sw_state(sw[15]),
+       .btnc_pressed(btnc),
+       .pixel_out(pixel_out),
+       .state_1_over(state_1)
+  );
+
   logic[2:0] photobooth_state
   //////////STATE MACHINE////////////
   always_ff  @(posedge clk_65mhz)begin
@@ -484,7 +499,7 @@ module top_level(
       photobooth_state <=0;
     end else begin
       if(photobooth_state ==0)begin //INITIAL
-        if(sw[15])begin
+        if(state_1) begin
           photobooth_state <=1;
         end
       end else if(photobooth_state == 1) begin //PHOTO
