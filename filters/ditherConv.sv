@@ -12,12 +12,12 @@ module ditherConv (
     output logic data_valid_out,
     output logic [10:0] hcount_out,
     output logic [9:0] vcount_out,
-    output logic pixel_out
+    output logic [6:0] pixel_out
     );
 
-    parameter MIDPOINT = 128;
-    parameter MAX_VAL = 255;
-    parameter WIDTH = 11;
+    parameter MIDPOINT = 64;
+    parameter MAX_VAL = 127;
+    parameter WIDTH = 7;
 
     logic[10:0] line1_read;
     // logic[10:0] line2_read;
@@ -106,7 +106,7 @@ module ditherConv (
                 bottom_Offsets[1] <= bottom_Offsets[2] + ((final_error*5)>>>4);
                 bottom_Offsets[2] <= ((final_error)>>>4);
             end else begin
-                pixel_out <=1;
+                pixel_out <=MAX_VAL;
 
                 nextOffset <= ((final_error-MAX_VAL)*7)>>>4;
                 bottom_Offsets[0] <= bottom_Offsets[1] + (((final_error-MAX_VAL)*3)>>>4);

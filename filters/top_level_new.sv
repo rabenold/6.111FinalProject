@@ -155,6 +155,7 @@ module top_level(
     .pixel_valid_out(valid_pixel),
     .frame_done_out(frame_done));
 
+  // 1 clock cycle
   rotate rotate_m (
     .cam_clk_in(cam_clk_in),
     .valid_pixel_in(valid_pixel),
@@ -164,6 +165,7 @@ module top_level(
     .frame_done_in(frame_done),
     .pixel_addr_in(pixel_addr_in));
   //grayscaling directly from camera 
+
 
   // ----------------- converting to grayscale here -------
   logic [7:0] red,green,blue;
@@ -267,13 +269,28 @@ module top_level(
   );
 
 
-  scale scale_m(
-    .scale_in(2'b00),
-    .hcount_in(hcount_pipe[2]-200), //TODO: needs to use pipelined signal (PS2)
-    .vcount_in(vcount_pipe[2]-250), //TODO: needs to use pipelined signal (PS2)
-    .frame_buff_in(frame_buff),
-    .cam_out(full_pixel)
-    );
+  // scale scale_m(
+  //   .scale_in(2'b00),
+  //   .hcount_in(hcount_pipe[2]-200), //TODO: needs to use pipelined signal (PS2)
+  //   .vcount_in(vcount_pipe[2]-250), //TODO: needs to use pipelined signal (PS2)
+  //   .frame_buff_in(frame_buff),
+  //   .cam_out(full_pixel)
+  //   );
+
+
+  /////// FILTERS WRITE ////////// 
+  recover recover_m (
+    .cam_clk_in(cam_clk_in),
+    .valid_pixel_in(valid_pixel),
+    .pixel_in(pix_data),
+    .frame_done_in(frame_done),
+
+    .system_clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .pixel_out(pixel_data_rec),
+    .data_valid_out(data_valid_rec),
+    .hcount_out(hcount_rec),
+    .vcount_out(vcount_rec));
   
   logic dither_valid;
   logic [10:0] dither_hcount;
@@ -283,18 +300,55 @@ module top_level(
   ditherConv ditherer(
     .clk_in(clk_65mhz),
     .rst_in(sys_rst),
-    .data_in(frame_buff),
-    .hcount_in(hcount_pipe[2]-200),
-    .vcount_in(vcount_pipe[2]-250),
-    .data_valid_in(photobooth_state==1),
+    .data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
 
     .data_valid_out(dither_valid),
     .hcount_out(dither_hcount),
     .vcount_out(dither_vcount),
-    .pixel_out(dither_pixelx)
+    .pixel_out(dither_pixel)
     );
-  
 
+    
+  logic[6:0] dither_rotate;
+  logic[16:0] dither_addr;
+  logic dither_write;
+  rotate2 rotate_dither(
+    .clk_in(clk_65mhz),
+    .hcount_in(dither_hcount),
+    .vcount_in(dither_vcount),
+    .data_valid_in(dither_valid),
+    .pixel_in(dither_pixel),
+    .pixel_out(dither_rotate),
+    .pixel_addr_out(dither_addr),
+    .data_valid_out(dither_write));
+
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    dither_frame (
+    //Write Side (16.67MHz)
+    .addra(dither_addr),
+    .clka(clk_65mhz),
+    .wea(dither_write && !sw[15]),
+    .dina(dither_pixel),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    .addrb(pixel_addr_out),
+    .dinb(16'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(frame_buff)
+  );
+  
   logic[2:0] photobooth_state
   //////////STATE MACHINE////////////
   always_ff  @(posedge clk_65mhz)begin

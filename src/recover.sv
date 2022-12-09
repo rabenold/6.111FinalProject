@@ -2,12 +2,12 @@
 module recover (
   input wire cam_clk_in,
   input wire valid_pixel_in,
-  input wire [15:0] pixel_in,
+  input wire [6:0] pixel_in,
   input wire frame_done_in,
 
   input wire system_clk_in,
   input wire rst_in,
-  output logic [15:0] pixel_out,
+  output logic [6:0] pixel_out,
 
   output logic data_valid_out,
   output logic [10:0] hcount_out,
