@@ -278,6 +278,7 @@ module top_level(
   //   );
 
 
+
   /////// FILTERS WRITE ////////// 
   recover recover_m (
     .cam_clk_in(cam_clk_in),
@@ -292,10 +293,13 @@ module top_level(
     .hcount_out(hcount_rec),
     .vcount_out(vcount_rec));
   
+
+
+
   logic dither_valid;
   logic [10:0] dither_hcount;
   logic [9:0] dither_vcount;
-  logic dither_pixel;
+  logic [6:0] dither_pixel;
 
   ditherConv ditherer(
     .clk_in(clk_65mhz),
@@ -332,40 +336,158 @@ module top_level(
     //Write Side (16.67MHz)
     .addra(dither_addr),
     .clka(clk_65mhz),
-    .wea(dither_write && !sw[15]),
-    .dina(dither_pixel),             
+    .wea(dither_write),
+    .dina(dither_rotate),             
     .ena(1'b1),
     .regcea(1'b1),
     .rsta(sys_rst),
     .douta(),
     //Read Side (65 MHz)
-    .addrb(pixel_addr_out),
-    .dinb(16'b0),
-    .clkb(clk_65mhz),
-    .web(1'b0),
-    .enb(1'b1),
-    .rstb(sys_rst),
-    .regceb(1'b1),
-    .doutb(frame_buff)
+    // .addrb(pixel_addr_out),
+    // .dinb(16'b0),
+    // .clkb(clk_65mhz),
+    // .web(1'b0),
+    // .enb(1'b1),
+    // .rstb(sys_rst),
+    // .regceb(1'b1),
+    // .doutb(frame_buff)
+  );
+
+
+  logic wave_valid;
+  logic [10:0] wave_hcount;
+  logic [9:0] wave_vcount;
+  logic [6:0] wave_pixel;
+
+  waveFilt waveFilt(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
+
+    .data_valid_out(wave_valid),
+    .hcount_out(wave_hcount),
+    .vcount_out(wave_vcount),
+    .pixel_out(wave_pixel)
+    );
+
+    
+  logic[6:0] wave_rotate;
+  logic[16:0] wave_addr;
+  logic wave_write;
+  rotate2 rotate_wave(
+    .clk_in(clk_65mhz),
+    .hcount_in(wave_hcount),
+    .vcount_in(wave_vcount),
+    .data_valid_in(wave_valid),
+    .pixel_in(wave_pixel),
+    .pixel_out(wave_rotate),
+    .pixel_addr_out(wave_addr),
+    .data_valid_out(wave_write));
+
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    wave_frame (
+    //Write Side (16.67MHz)
+    .addra(wave_addr),
+    .clka(clk_65mhz),
+    .wea(wave_write),
+    .dina(wave_rotate),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    // .addrb(pixel_addr_out),
+    // .dinb(16'b0),
+    // .clkb(clk_65mhz),
+    // .web(1'b0),
+    // .enb(1'b1),
+    // .rstb(sys_rst),
+    // .regceb(1'b1),
+    // .doutb(frame_buff)
   );
   
-  logic[2:0] photobooth_state
-  //////////STATE MACHINE////////////
-  always_ff  @(posedge clk_65mhz)begin
-    if(rst_in) begin
-      photobooth_state <=0;
-    end else begin
-      if(photobooth_state ==0)begin //INITIAL
-        if(state_1) begin
-          photobooth_state <=1;
-        end
-      end else if(photobooth_state == 1) begin //PHOTO
-      end else if(photobooth_state == 2) begin //CHOOSE
-      end else if(photobooth_state == 3) begin //THRESHOLD
-      end else if (photobooth_state == 4) begin //SEND
-      end
-    end
-  end
+  logic ridge_valid;
+  logic [10:0] ridge_hcount;
+  logic [9:0] ridge_vcount;
+  logic [6:0] ridge_pixel;
+
+  filter #(.K_SELECT(3)) ridgeFilt(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
+
+    .data_valid_out(ridge_valid),
+    .hcount_out(ridge_hcount),
+    .vcount_out(ridge_vcount),
+    .pixel_out(ridge_pixel)
+    );
+
+    
+  logic[6:0] ridge_rotate;
+  logic[16:0] ridge_addr;
+  logic ridge_write;
+  rotate2 rotate_wave(
+    .clk_in(clk_65mhz),
+    .hcount_in(ridge_hcount),
+    .vcount_in(ridge_vcount),
+    .data_valid_in(ridge_valid),
+    .pixel_in(ridge_pixel),
+    .pixel_out(ridge_rotate),
+    .pixel_addr_out(ridge_addr),
+    .data_valid_out(ridge_write));
+
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    wave_frame (
+    //Write Side (16.67MHz)
+    .addra(ridge_addr),
+    .clka(clk_65mhz),
+    .wea(ridge_write),
+    .dina(ridge_rotate),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    // .addrb(pixel_addr_out),
+    // .dinb(16'b0),
+    // .clkb(clk_65mhz),
+    // .web(1'b0),
+    // .enb(1'b1),
+    // .rstb(sys_rst),
+    // .regceb(1'b1),
+    // .doutb(frame_buff)
+  );
+
+  
+
+
+  // logic[2:0] photobooth_state
+  // //////////STATE MACHINE////////////
+  // always_ff  @(posedge clk_65mhz)begin
+  //   if(rst_in) begin
+  //     photobooth_state <=0;
+  //   end else begin
+  //     if(photobooth_state ==0)begin //INITIAL
+  //       if(state_1) begin
+  //         photobooth_state <=1;
+  //       end
+  //     end else if(photobooth_state == 1) begin //PHOTO
+  //     end else if(photobooth_state == 2) begin //CHOOSE
+  //     end else if(photobooth_state == 3) begin //THRESHOLD
+  //     end else if (photobooth_state == 4) begin //SEND
+  //     end
+  //   end
+  // end
 
 
 endmodule
