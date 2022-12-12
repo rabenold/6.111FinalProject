@@ -280,6 +280,7 @@ module top_level(
 
 
   /////// FILTERS WRITE ////////// 
+
   recover recover_m (
     .cam_clk_in(cam_clk_in),
     .valid_pixel_in(valid_pixel),
@@ -315,19 +316,13 @@ module top_level(
     .pixel_out(dither_pixel)
     );
 
-    
-  logic[6:0] dither_rotate;
+  
   logic[16:0] dither_addr;
-  logic dither_write;
-  rotate2 rotate_dither(
-    .clk_in(clk_65mhz),
-    .hcount_in(dither_hcount),
-    .vcount_in(dither_vcount),
-    .data_valid_in(dither_valid),
-    .pixel_in(dither_pixel),
-    .pixel_out(dither_rotate),
-    .pixel_addr_out(dither_addr),
-    .data_valid_out(dither_write));
+  assign dither_addr = (dither_vcount*240) + dither_hcount;
+
+  logic [16:0] dither_read;
+  assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-32);
+  logic [6:0] dither_out;
 
   xilinx_true_dual_port_read_first_2_clock_ram #(
     .RAM_WIDTH(7),
@@ -336,21 +331,21 @@ module top_level(
     //Write Side (16.67MHz)
     .addra(dither_addr),
     .clka(clk_65mhz),
-    .wea(dither_write),
-    .dina(dither_rotate),             
+    .wea(dither_valid),
+    .dina(dither_pixel),             
     .ena(1'b1),
     .regcea(1'b1),
     .rsta(sys_rst),
     .douta(),
     //Read Side (65 MHz)
-    // .addrb(pixel_addr_out),
-    // .dinb(16'b0),
-    // .clkb(clk_65mhz),
-    // .web(1'b0),
-    // .enb(1'b1),
-    // .rstb(sys_rst),
-    // .regceb(1'b1),
-    // .doutb(frame_buff)
+    .addrb(dither_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(dither_out)
   );
 
 
@@ -374,19 +369,13 @@ module top_level(
     );
 
     
-  logic[6:0] wave_rotate;
   logic[16:0] wave_addr;
-  logic wave_write;
-  rotate2 rotate_wave(
-    .clk_in(clk_65mhz),
-    .hcount_in(wave_hcount),
-    .vcount_in(wave_vcount),
-    .data_valid_in(wave_valid),
-    .pixel_in(wave_pixel),
-    .pixel_out(wave_rotate),
-    .pixel_addr_out(wave_addr),
-    .data_valid_out(wave_write));
+  assign wave_addr = (wave_vcount*240) + wave_hcount;
 
+  logic [16:0] wave_read;
+  assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-32);
+  
+  logic [6:0] wave_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
     .RAM_WIDTH(7),
     .RAM_DEPTH(320*240))
@@ -394,21 +383,21 @@ module top_level(
     //Write Side (16.67MHz)
     .addra(wave_addr),
     .clka(clk_65mhz),
-    .wea(wave_write),
-    .dina(wave_rotate),             
+    .wea(wave_valid),
+    .dina(wave_pixel),             
     .ena(1'b1),
     .regcea(1'b1),
     .rsta(sys_rst),
     .douta(),
     //Read Side (65 MHz)
-    // .addrb(pixel_addr_out),
-    // .dinb(16'b0),
-    // .clkb(clk_65mhz),
-    // .web(1'b0),
-    // .enb(1'b1),
-    // .rstb(sys_rst),
-    // .regceb(1'b1),
-    // .doutb(frame_buff)
+    .addrb(wave_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(wave_out)
   );
   
   logic ridge_valid;
@@ -431,19 +420,14 @@ module top_level(
     );
 
     
-  logic[6:0] ridge_rotate;
+  
   logic[16:0] ridge_addr;
-  logic ridge_write;
-  rotate2 rotate_wave(
-    .clk_in(clk_65mhz),
-    .hcount_in(ridge_hcount),
-    .vcount_in(ridge_vcount),
-    .data_valid_in(ridge_valid),
-    .pixel_in(ridge_pixel),
-    .pixel_out(ridge_rotate),
-    .pixel_addr_out(ridge_addr),
-    .data_valid_out(ridge_write));
+  assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
 
+  logic [16:0] ridge_read;
+  assign ridge_read = (hcount_pipe[0]-730)*240 + (vcount_pipe[0]-32);
+
+  logic[6:0] ridge_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
     .RAM_WIDTH(7),
     .RAM_DEPTH(320*240))
@@ -451,25 +435,104 @@ module top_level(
     //Write Side (16.67MHz)
     .addra(ridge_addr),
     .clka(clk_65mhz),
-    .wea(ridge_write),
-    .dina(ridge_rotate),             
+    .wea(ridge_valid),
+    .dina(ridge_pixel),             
     .ena(1'b1),
     .regcea(1'b1),
     .rsta(sys_rst),
     .douta(),
     //Read Side (65 MHz)
-    // .addrb(pixel_addr_out),
-    // .dinb(16'b0),
-    // .clkb(clk_65mhz),
-    // .web(1'b0),
-    // .enb(1'b1),
-    // .rstb(sys_rst),
-    // .regceb(1'b1),
-    // .doutb(frame_buff)
+    .addrb(ridge_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(ridge_out)
+  );
+
+
+
+  logic id_valid;
+  logic [10:0] id_hcount;
+  logic [9:0] id_vcount;
+  logic [6:0] id_pixel;
+
+  filter #(.K_SELECT(0)) idFilt(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
+
+    .data_valid_out(id_valid),
+    .hcount_out(id_hcount),
+    .vcount_out(id_vcount),
+    .pixel_out(id_pixel)
+    );
+
+    
+  
+  logic[16:0] id_addr;
+  assign id_addr = (ridge_vcount*240) + ridge_hcount;
+
+  logic [16:0] id_read;
+  assign id_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-416);
+
+  logic[6:0] ridge_out;
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    wave_frame (
+    //Write Side (16.67MHz)
+    .addra(id_addr),
+    .clka(clk_65mhz),
+    .wea(id_valid),
+    .dina(id_pixel),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    .addrb(id_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(id_out)
   );
 
   
 
+
+
+
+
+
+
+
+  logic[6:0] filter_pixel_choose;
+  always_comb begin
+    if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 32 && vcount_pipe[2] < 352)begin
+      filter_pixel_choose = dither_out;
+    end
+    else if(hcount_pipe[2] >= 390 && hcount_pipe[2] < 630 && vcount_pipe[2] >= 32 && vcount_pipe[2] < 352)begin
+      filter_pixel_choose = wave_out;
+    end
+    else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 32 && vcount_pipe[2] < 352)begin
+      filter_pixel_choose = ridge_out;
+    end
+    else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 416 && vcount_pipe[2] < 736)begin
+      filter_pixel_choose = id_out;
+    end
+    else begin
+      filter_pixel_choose = 0;
+    end
+  end
 
   // logic[2:0] photobooth_state
   // //////////STATE MACHINE////////////
