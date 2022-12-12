@@ -3,7 +3,7 @@
 
 `include "iverilog_hack.svh"
 
-module filter_screen_instructions_sprite #(
+module filter_select_instructions_sprite #(
   parameter WIDTH=900, HEIGHT=24) (
   input wire pixel_clk_in,
   input wire rst_in,
