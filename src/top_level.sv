@@ -265,9 +265,10 @@ module top_level(
 
   logic [3:0] gray_out = full_pixel[4:1];
   logic [11:0] pixel_out;
-  logic [2:0] select_out;
+  logic [2:0] filter_select_out;
+  logic [1:0] threshold_select_out;
   logic state_1;
-  start_screen start_screen(
+  screen screen_mod (
        .rst_in(sys_rst),
        .clk_in(clk_65mhz),
        .hcount_in(hcount_pipe[2]),
@@ -278,7 +279,8 @@ module top_level(
        .left_in(btnl),
        .right_in(btnr),
        .pixel_out(pixel_out),
-       .select_out(select_out),
+       .filter_select_out(filter_select_out),
+       .threshold_select_out(threshold_select_out),
        .state_1_over(state_1)
    );
 // state_1 == 1 indicates the we are ready to start processing 
