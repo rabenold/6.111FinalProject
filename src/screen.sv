@@ -2,7 +2,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module start_screen (
+module screen (
     input wire rst_in,
     input wire clk_in,
     input wire sw_state,
@@ -14,7 +14,8 @@ module start_screen (
     input wire right_in,
 
     output logic [11:0] pixel_out,
-    output logic [2:0] select_out,
+    output logic [2:0] filter_select_out,
+    output logic [2:0] threshold_select_out,
     output logic state_1_over
     );
 
@@ -87,19 +88,37 @@ module start_screen (
         );
 
 
+    // threshold select logic
+    logic [10:0] threshold_arrow_x;
+    logic [9:0] threshold_arrow_y;
+    logic [11:0] threshold_arrow_pixel_out;
+    up_arrow_sprite #(.WIDTH(100), .HEIGHT(100)) threshold_up_arrow 
+        (.pixel_clk_in(clk_in), 
+        .rst_in(rst_in), 
+        .x_in(threshold_arrow_x), 
+        .hcount_in(hcount_in), 
+        .y_in(threshold_arrow_y), 
+        .vcount_in(vcount_in), 
+        .pixel_out(threshold_arrow_pixel_out)
+        );
+
+
     // edge detection logic 
     logic old_left;
     logic old_right;
+    logic old_middle;
     logic left_click;
     logic right_click;
+    logic middle_click;
     always_ff @(posedge clk_in) begin
         old_left <= left_in;
         old_right <= right_in;
+        old_middle <= middle_in;
     end
     assign left_click = left_in & ~old_left;
     assign right_click = right_in & ~old_right;
-    logic old_middle;
-    assign state_1_over = old_middle;
+    assign middle_click = middle_in & ~old_middle;
+    logic done_start;
     
     // state machine logic
     parameter START = 0;
@@ -109,9 +128,10 @@ module start_screen (
 
     always_ff @(posedge clk_in) begin
         if (rst_in) begin
-            old_middle <= 0;
+            state_1_over <= 0;
             state <= 0;
-            select_out <= 0;
+            filter_select_out <= 0;
+            threshold_select_out <= 0;
             use_up_arrow <= 1;
             arrow_x <= 120;
             arrow_y <= 334;
@@ -119,16 +139,17 @@ module start_screen (
         else begin
             case (state)
                 START: begin
-                    old_middle <= middle_in && sw_state ? 1 : old_middle;
-                    if (!old_middle) begin
+                    done_start <= middle_in && sw_state ? 1 : done_start;
+                    if (!done_start) begin
                         pixel_out <= sw_state ? (pixel_out_photobooth | pixel_out_start_instructions | pixel_out_instructions) : (pixel_out_photobooth | pixel_out_start_instructions);
                     end
                     else begin
+                        state_1_over <= 1;
                         state <= DISPLAY;
                     end
                 end
                 DISPLAY: begin
-                    case (select_out)
+                    case (filter_select_out)
                         3'b000: begin
                             use_up_arrow <= 1;
                             arrow_x <= 120;
@@ -161,20 +182,64 @@ module start_screen (
                         end
                     endcase
                     if (right_click) begin
-                        if (select_out == 3'b101) begin
-                            select_out <= 3'b000;
+                        if (filter_select_out == 3'b101) begin
+                            filter_select_out <= 3'b000;
                         end else begin       
-                            select_out <= select_out + 1;
+                            filter_select_out <= filter_select_out + 1;
                         end
                     end 
                     else if (left_click) begin
-                        if (select_out == 3'b000) begin
-                            select_out <= 3'b101;
+                        if (filter_select_out == 3'b000) begin
+                            filter_select_out <= 3'b101;
                         end else begin       
-                            select_out = select_out - 1;
+                            filter_select_out = filter_select_out - 1;
                         end
                     end 
-                    pixel_out <= select_pixel_out | filter_screen_instructions_pixel_out;
+                    if (middle_in & ~old_middle) begin
+                        state <= THRESH;
+                        use_up_arrow <= 1;
+                    end else begin
+                        pixel_out <= select_pixel_out | filter_screen_instructions_pixel_out;
+                    end
+                end
+                THRESH: begin
+                    case (threshold_select_out)
+                        2'b00: begin
+                            threshold_arrow_x <= 78;
+                            threshold_arrow_y <= 560;
+                        end
+                        2'b01: begin
+                            threshold_arrow_x <= 334;
+                            threshold_arrow_y <= 560;
+                        end
+                        2'b10: begin
+                            threshold_arrow_x <= 590;
+                            threshold_arrow_y <= 560;
+                        end
+                        2'b11: begin
+                            threshold_arrow_x <= 846;
+                            threshold_arrow_y <= 560;
+                        end
+                    endcase
+                    if (right_click) begin
+                        if (threshold_select_out == 2'b11) begin
+                            threshold_select_out <= 2'b00;
+                        end else begin       
+                            threshold_select_out <= threshold_select_out + 1;
+                        end
+                    end 
+                    if (left_click) begin
+                        if (threshold_select_out == 2'b00) begin
+                            threshold_select_out <= 2'b11;
+                        end else begin       
+                            threshold_select_out <= threshold_select_out - 1;
+                        end
+                    end
+                    if (middle_click) begin
+                        pixel_out <= 12'hFFF;
+                    end else begin
+                        pixel_out <= threshold_arrow_pixel_out;
+                    end
                 end
             endcase
         end
