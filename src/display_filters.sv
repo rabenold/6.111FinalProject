@@ -5,7 +5,6 @@
 module display_filters(
     input wire clk_in,
     input wire rst_in,
-    input wire ready,
     input wire [10:0] hcount_in,
     input wire [9:0] vcount_in,
     input wire left_in,
@@ -127,102 +126,90 @@ module display_filters(
     // );
 
     always_comb begin
-        if (ready) begin
-            if (right_in) begin
-                if (select_out == 3'b101) begin
-                    select_out = 3'b000;
-                end else begin       
-                    select_out = select_out + 1;
-                end
-            end 
-            if (left_in) begin
-                if (select_out == 3'b000) begin
-                    select_out = 3'b101;
-                end else begin       
-                    select_out = select_out - 1;
-                end
-            end 
-            case (select_out)
-                3'b000: begin
-                    use_up_arrow = 1;
-                    arrow_x = 120;
-                    arrow_y = 334;
-                end
-                3'b001: begin
-                    use_up_arrow = 1;
-                    arrow_x = 460;
-                    arrow_y = 334;
-                end
-                3'b010: begin
-                    use_up_arrow = 1;
-                    arrow_x = 800;
-                    arrow_y = 334;
-                end
-                3'b011: begin
-                    use_up_arrow = 0;
-                    arrow_x = 120;
-                    arrow_y = 334;
-                end
-                3'b100: begin
-                    use_up_arrow = 0;
-                    arrow_x = 460;
-                    arrow_y = 334;
-                end
-                3'b101: begin
-                    use_up_arrow = 0;
-                    arrow_x = 800;
-                    arrow_y = 334;
-                end
-            endcase
-        end
+        if (right_in) begin
+            if (select_out == 3'b101) begin
+                select_out = 3'b000;
+            end else begin       
+                select_out = select_out + 1;
+            end
+        end 
+        if (left_in) begin
+            if (select_out == 3'b000) begin
+                select_out = 3'b101;
+            end else begin       
+                select_out = select_out - 1;
+            end
+        end 
+        case (select_out)
+            3'b000: begin
+                use_up_arrow = 1;
+                arrow_x = 120;
+                arrow_y = 334;
+            end
+            3'b001: begin
+                use_up_arrow = 1;
+                arrow_x = 460;
+                arrow_y = 334;
+            end
+            3'b010: begin
+                use_up_arrow = 1;
+                arrow_x = 800;
+                arrow_y = 334;
+            end
+            3'b011: begin
+                use_up_arrow = 0;
+                arrow_x = 120;
+                arrow_y = 334;
+            end
+            3'b100: begin
+                use_up_arrow = 0;
+                arrow_x = 460;
+                arrow_y = 334;
+            end
+            3'b101: begin
+                use_up_arrow = 0;
+                arrow_x = 800;
+                arrow_y = 334;
+            end
+        endcase
     end
 
     always_ff @(posedge clk_in) begin
-        if (ready) begin
-            if (rst_in) begin
-                select_out <= 0;
-                use_up_arrow <= 1;
-                arrow_x <= 120;
-                arrow_y <= 334;
+        if (rst_in) begin
+            select_out <= 0;
+            use_up_arrow <= 1;
+            arrow_x <= 120;
+            arrow_y <= 334;
+        end
+        else begin
+            // copy filtered images into 1 of 6 boxes
+            if (hcount_in >= 50 && hcount_in < 290 & vcount_in >= 26 & vcount_in < 346) begin //box 1
+                // output pixel from orig photo
+                pixel_out <= frame_buff_in; 
             end
+            else if (hcount_in >= 390 && hcount_in < 630 & vcount_in >= 26 & vcount_in < 346) begin //box 2
+                pixel_out <= frame_buff_in;
+            end
+            else if (hcount_in >= 730 && hcount_in < 970 & vcount_in >= 26 & vcount_in < 346) begin //box 3
+                // replace pixel_out with output of different filter eventually
+                pixel_out <= frame_buff_in;
+            end
+            else if (hcount_in >= 50 && hcount_in < 290 & vcount_in >= 446 & vcount_in < 766) begin //box 4
+                // replace pixel_out with output of different filter eventually
+                pixel_out <= frame_buff_in;
+            end
+            else if (hcount_in >= 390 && hcount_in < 630 & vcount_in >= 446 & vcount_in < 766) begin //box 5
+                // replace pixel_out with output of different filter eventually
+                pixel_out <= frame_buff_in;
+            end
+            else if (hcount_in >= 730 && hcount_in < 970 & vcount_in >= 446 & vcount_in < 766) begin //box 6
+                // replace pixel_out with output of different filter eventually
+                pixel_out <= frame_buff_in;
+            end
+
+            // draw black everywhere else 
             else begin
-                // draw line separators for 6 boxes
-                if (hcount_in == 340 || hcount_in == 680) begin
-                    pixel_out <= 1;
-                end
-                else if (vcount_in == 383) begin
-                    pixel_out <= 1;
-                end
-
-                // copy filtered images into 1 of 6 boxes
-                else if (hcount_in >= 50 && hcount_in < 290 && vcount_in >= 32 && vcount_in < 352) begin //box 1
-                    // output pixel from orig photo
-                    pixel_out <= frame_buff_in; 
-                end
-                else if (hcount_in >= 390 && hcount_in < 630 && vcount_in >= 32 && vcount_in < 352) begin //box 2
-                    pixel_out <= frame_buff_in;
-                end
-                else if (hcount_in >= 730 && hcount_in < 970 && vcount_in >= 32 && vcount_in < 352) begin //box 3
-                    // replace pixel_out with output of different filter eventually
-                    pixel_out <= frame_buff_in;
-                end
-                else if (hcount_in >= 50 && hcount_in < 290 && vcount_in >= 416 && vcount_in < 736) begin //box 4
-                    // replace pixel_out with output of different filter eventually
-                    pixel_out <= frame_buff_in;
-                end
-                else if (hcount_in >= 390 && hcount_in < 630 && vcount_in >= 416 && vcount_in < 736) begin //box 5
-                    // replace pixel_out with output of different filter eventually
-                    pixel_out <= frame_buff_in;
-                end
-                else if (hcount_in >= 730 && hcount_in < 970 && vcount_in >= 416 && vcount_in < 736) begin //box 6
-                    // replace pixel_out with output of different filter eventually
-                    pixel_out <= frame_buff_in;
-                end
-
-                // draw black everywhere else 
-                else begin
-                    pixel_out <= 0;
-                end
+                pixel_out <= 0;
             end
         end
     end

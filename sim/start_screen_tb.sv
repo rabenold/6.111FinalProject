@@ -11,8 +11,11 @@ module start_screen_tb;
   logic [10:0] hcount_in;
   logic [9:0] vcount_in;
   logic [3:0] cam_img;
-  logic btnc_pressed;
+  logic middle_in;
+  logic left_in;
+  logic right_in;
   logic [11:0] pixel_out;
+  logic [2:0] select_out;
   logic state_1_over;
 
   start_screen uut (
@@ -22,8 +25,11 @@ module start_screen_tb;
     .hcount_in(hcount_in),
     .vcount_in(vcount_in),
     .cam_img(cam_img),
-    .btnc_pressed(btnc_pressed),
+    .middle_in(middle_in),
+    .left_in(left_in),
+    .right_in(right_in),
     .pixel_out(pixel_out),
+    .select_out(select_out),
     .state_1_over(state_1_over)
   );
 
@@ -52,9 +58,7 @@ module start_screen_tb;
     vcount_in = 150;
     sw_state = 1;
     #10;
-    btnc_pressed = 1;
-    #10;
-    btnc_pressed = 0;
+    middle_in = 1;
     #40;
 
 
