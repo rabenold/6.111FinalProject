@@ -250,9 +250,22 @@ module top_level(
     .cam_out(full_pixel)
     );
 
+    
+  logic left, right;
+  debouncer db_left (
+    .rst_in(sys_rst),
+    .clk_in(clk_65mhz),
+    .dirty_in(btnl),
+    .clean_out(left));
+  debouncer db_right (
+    .rst_in(sys_rst),
+    .clk_in(clk_65mhz),
+    .dirty_in(btnr),
+    .clean_out(right));
 
   logic [3:0] gray_out = full_pixel[4:1];
   logic [11:0] pixel_out;
+  logic [2:0] select_out;
   logic state_1;
   start_screen start_screen(
        .rst_in(sys_rst),
@@ -261,50 +274,59 @@ module top_level(
        .vcount_in(vcount_pipe[2]),
        .cam_img(gray_out),
        .sw_state(sw[15]),
-       .btnc_pressed(btnc),
+       .middle_in(btnc),
+       .left_in(btnl),
+       .right_in(btnr),
        .pixel_out(pixel_out),
+       .select_out(select_out),
        .state_1_over(state_1)
    );
-
 // state_1 == 1 indicates the we are ready to start processing 
 
 
-  // logic [11:0] display_screen_pixel_out;
-  // logic [2:0] display_screen_select_out;
-  // display_filters display_filters(
-  //   .clk_in(clk_65mhz),
-  //   .rst_in(sys_rst),
-  //   .ready(state_1),
-  //   .hcount_in(hcount_pipe[2]),
-  //   .vcount_in(vcount_pipe[2]),
-  //   .left_in(btnl),
-  //   .right_in(btnr),
-  //   .frame_buff_in(frame_buff),
-  //   .pixel_out(display_screen_pixel_out),
-  //   .select_out(display_screen_select_out)
-  //   );
-
-
-
-// 
 // use this logic for writing to vga outside of state 1
-   logic [11:0] vga_pixel; 
+  logic [11:0] vga_pixel; 
 
   always_ff @(posedge clk_65mhz)begin
         //if still in state 1 displaying gray cam pix and sprites 
       if (!state_1)begin 
-           vga_r <= ~blank_pipe[3]?(gray_out | pixel_out):0; //TODO: needs to use pipelined signal (PS6)
-           vga_g <= ~blank_pipe[3]?(gray_out | pixel_out):0;  //TODO: needs to use pipelined signal (PS6)
-           vga_b <= ~blank_pipe[3]?(gray_out | pixel_out):0;  //TODO: needs to use pipelined signal (PS6)
+           vga_r <= ~blank_pipe[3] ? (gray_out | pixel_out) : 0; 
+           vga_g <= ~blank_pipe[3] ? (gray_out | pixel_out) : 0; 
+           vga_b <= ~blank_pipe[3] ? (gray_out | pixel_out) : 0;
       end else
       begin
-           vga_r <= ~blank_pipe[3]?vga_pixel:0; //TODO: needs to use pipelined signal (PS6)
-           vga_g <= ~blank_pipe[3]?vga_pixel:0;  //TODO: needs to use pipelined signal (PS6)
-           vga_b <= ~blank_pipe[3]?vga_pixel:0;  //TODO: needs to use pipelined signal (PS6)
+           vga_r <= ~blank_pipe[3] ? pixel_out : 0; //TODO: needs to use pipelined signal (PS6)
+           vga_g <= ~blank_pipe[3] ? pixel_out : 0;  //TODO: needs to use pipelined signal (PS6)
+           vga_b <= ~blank_pipe[3] ? pixel_out : 0;  //TODO: needs to use pipelined signal (PS6)
       end
   end
   assign vga_hs = ~hsync_pipe[4];  //TODO: needs to use pipelined signal (PS7)
   assign vga_vs = ~vsync_pipe[4];  //TODO: needs to use pipelined signal (PS7)
+
+
+  // logic [11:0] pixel_out;
+  // logic [2:0] select_out;
+  // select_filter_screen select_mod(
+  //   .clk_in(clk_65mhz),
+  //   .rst_in(sys_rst),
+  //   .hcount_in(hcount_pipe[2]),
+  //   .vcount_in(vcount_pipe[2]),
+  //   .left_in(btnl),
+  //   .right_in(btnr),
+  //   .pixel_out(pixel_out),
+  //   .select_out(select_out)
+  // );
+
+  // logic [11:0] vga_pixel;
+
+  // assign vga_r = ~blank_pipe[3] ? pixel_out : 0;
+  // assign vga_g = ~blank_pipe[3] ? pixel_out : 0;
+  // assign vga_b = ~blank_pipe[3] ? pixel_out : 0;
+  
+  // assign vga_hs = ~hsync_pipe[4];
+  // assign vga_vs = ~vsync_pipe[4];
+
+
 
 endmodule
 `default_nettype wire 

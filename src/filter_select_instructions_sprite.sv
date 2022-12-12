@@ -3,8 +3,8 @@
 
 `include "iverilog_hack.svh"
 
-module photobooth_sprite #(
-  parameter WIDTH=800, HEIGHT=128) (
+module filter_screen_instructions_sprite #(
+  parameter WIDTH=900, HEIGHT=24) (
   input wire pixel_clk_in,
   input wire rst_in,
   input wire [10:0] x_in, hcount_in,
@@ -24,9 +24,9 @@ module photobooth_sprite #(
 
   xilinx_single_port_ram_read_first #(
     .RAM_WIDTH(8),                       // Specify RAM data width
-    .RAM_DEPTH(102400),                     // Specify RAM depth (number of entries)
+    .RAM_DEPTH(21600),                     // Specify RAM depth (number of entries)
     .RAM_PERFORMANCE("HIGH_PERFORMANCE"), // Select "HIGH_PERFORMANCE" or "LOW_LATENCY" 
-    .INIT_FILE(`FPATH(photobooth_image.mem))          // Specify name/location of RAM initialization file if using one (leave blank if not)
+    .INIT_FILE(`FPATH(filter_select_instructions_image.mem))          // Specify name/location of RAM initialization file if using one (leave blank if not)
   ) image_brom (
     .addra(image_addr),     // Address bus, width determined from RAM_DEPTH
     .dina(0),       // RAM input data, width determined from RAM_WIDTH
@@ -40,9 +40,9 @@ module photobooth_sprite #(
 
   xilinx_single_port_ram_read_first #(
     .RAM_WIDTH(12),                       // Specify RAM data width
-    .RAM_DEPTH(800),                     // Specify RAM depth (number of entries)
+    .RAM_DEPTH(900),                     // Specify RAM depth (number of entries)
     .RAM_PERFORMANCE("HIGH_PERFORMANCE"), // Select "HIGH_PERFORMANCE" or "LOW_LATENCY" 
-    .INIT_FILE(`FPATH(photobooth_palette.mem))          // Specify name/location of RAM initialization file if using one (leave blank if not)
+    .INIT_FILE(`FPATH(filter_select_instructions_palette.mem))          // Specify name/location of RAM initialization file if using one (leave blank if not)
   ) palette_brom (
     .addra(image_out),     // Address bus, width determined from RAM_DEPTH
     .dina(0),       // RAM input data, width determined from RAM_WIDTH

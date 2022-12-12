@@ -3,8 +3,6 @@
 
 `include "iverilog_hack.svh"
 
-// each row in .mem file is 8 bits and we have 100*100 rows
-
 module instructions_sprite #(
   parameter WIDTH=200, HEIGHT=200) (
   input wire pixel_clk_in,
