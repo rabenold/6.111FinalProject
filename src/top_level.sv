@@ -211,7 +211,6 @@ module top_level(
       vcount_pipe[i] <= vcount_pipe[i-1];
     end
 
-
     full_pixel_pipe[0] <= full_pixel;
     for (int i=1; i<3; i = i+1)begin
       full_pixel_pipe[i] <= full_pixel_pipe[i-1];
@@ -271,8 +270,8 @@ module top_level(
   screen screen_mod (
        .rst_in(sys_rst),
        .clk_in(clk_65mhz),
-       .hcount_in(hcount_pipe[2]),
-       .vcount_in(vcount_pipe[2]),
+       .hcount_in(hcount_pipe[5]),
+       .vcount_in(vcount_pipe[5]),
        .cam_img(gray_out),
        .sw_state(sw[15]),
        .middle_in(btnc),
@@ -304,29 +303,6 @@ module top_level(
   end
   assign vga_hs = ~hsync_pipe[4];  //TODO: needs to use pipelined signal (PS7)
   assign vga_vs = ~vsync_pipe[4];  //TODO: needs to use pipelined signal (PS7)
-
-
-  // logic [11:0] pixel_out;
-  // logic [2:0] select_out;
-  // select_filter_screen select_mod(
-  //   .clk_in(clk_65mhz),
-  //   .rst_in(sys_rst),
-  //   .hcount_in(hcount_pipe[2]),
-  //   .vcount_in(vcount_pipe[2]),
-  //   .left_in(btnl),
-  //   .right_in(btnr),
-  //   .pixel_out(pixel_out),
-  //   .select_out(select_out)
-  // );
-
-  // logic [11:0] vga_pixel;
-
-  // assign vga_r = ~blank_pipe[3] ? pixel_out : 0;
-  // assign vga_g = ~blank_pipe[3] ? pixel_out : 0;
-  // assign vga_b = ~blank_pipe[3] ? pixel_out : 0;
-  
-  // assign vga_hs = ~hsync_pipe[4];
-  // assign vga_vs = ~vsync_pipe[4];
 
 
 
