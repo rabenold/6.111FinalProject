@@ -327,11 +327,21 @@ module top_level(
 
   
   logic[16:0] dither_addr;
-  assign dither_addr = (dither_vcount*240) + dither_hcount;
+  // assign dither_addr = (dither_vcount*240) + dither_hcount;
+
+  always_comb begin
+    if(dither_vcount > 160)begin
+      dither_addr = 38400 + (dither_vcount - 160)*240 + dither_hcount
+    end else begin
+      dither_addr = (dither_vcount*240) + dither_hcount;
+    end
+  end
 
   logic [16:0] dither_read;
   assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-32);
   logic [6:0] dither_out;
+
+  
 
   xilinx_true_dual_port_read_first_2_clock_ram #(
     .RAM_WIDTH(7),
@@ -379,7 +389,15 @@ module top_level(
 
     
   logic[16:0] wave_addr;
-  assign wave_addr = (wave_vcount*240) + wave_hcount;
+  // assign wave_addr = (wave_vcount*240) + wave_hcount;
+
+  always_comb begin
+    if(wave_vcount > 160)begin
+      wave_addr = 38400 + (wave_vcount - 160)*240 + wave_hcount
+    end else begin
+      wave_addr = (wave_vcount*240) + wave_hcount;
+    end
+  end
 
   logic [16:0] wave_read;
   assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-32);
@@ -431,7 +449,15 @@ module top_level(
     
   
   logic[16:0] ridge_addr;
-  assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
+  // assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
+
+  always_comb begin
+    if(ridge_vcount > 160)begin
+      ridge_addr = 38400 + (ridge_vcount - 160)*240 + ridge_hcount
+    end else begin
+      ridge_addr = (ridge_vcount*240) + ridge_hcount;
+    end
+  end
 
   logic [16:0] ridge_read;
   assign ridge_read = (hcount_pipe[0]-730)*240 + (vcount_pipe[0]-32);
@@ -485,16 +511,32 @@ module top_level(
     
   
   logic[16:0] id_addr;
-  assign id_addr = (ridge_vcount*240) + ridge_hcount;
+  // assign id_addr = (ridge_vcount*240) + ridge_hcount;
 
-  logic [16:0] id_read;
-  assign id_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-416);
+  always_comb begin
+    if(id_vcount > 160)begin
+      id_addr = 38400 + (id_vcount - 160)*240 + id_hcount
+    end else begin
+      id_addr = (id_vcount*240) + id_hcount;
+    end
+  end
+
+  logic [16:0] id_read = 0;
+  always_ff @(posedge clk_65mhz)begin
+    if(hcount_pipe==50&&vcount_pipe==416)begin
+      id_read <=0;
+    end else if (hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 416 && vcount_pipe[2] < 736)begin
+      id_read <= id_read+1;
+    end
+  end
+  //assign id_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-416);
+
 
   logic[6:0] ridge_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
     .RAM_WIDTH(7),
     .RAM_DEPTH(320*240))
-    wave_frame (
+    id_frame (
     //Write Side (16.67MHz)
     .addra(id_addr),
     .clka(clk_65mhz),
