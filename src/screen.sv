@@ -129,7 +129,8 @@ module screen (
     always_ff @(posedge clk_in) begin
         if (rst_in) begin
             state_1_over <= 0;
-            state <= 0;
+            state <= START;
+            done_start <= 0;
             filter_select_out <= 0;
             threshold_select_out <= 0;
             use_up_arrow <= 1;
