@@ -249,19 +249,6 @@ module top_level(
     .cam_out(full_pixel)
     );
 
-    
-  logic left, right;
-  debouncer db_left (
-    .rst_in(sys_rst),
-    .clk_in(clk_65mhz),
-    .dirty_in(btnl),
-    .clean_out(left));
-  debouncer db_right (
-    .rst_in(sys_rst),
-    .clk_in(clk_65mhz),
-    .dirty_in(btnr),
-    .clean_out(right));
-
   /////// FILTERS WRITE ////////// 
 
   recover recover_m (
