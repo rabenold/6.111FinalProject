@@ -125,7 +125,6 @@ module screen (
     parameter DISPLAY = 1;
     parameter THRESH = 2;
     logic [1:0] state;
-
     always_ff @(posedge clk_in) begin
         if (rst_in) begin
             state_1_over <= 0;
@@ -244,7 +243,9 @@ module screen (
                 end
             endcase
         end
-   end 
+    end
+
+
 endmodule 
 
 `default_nettype wire

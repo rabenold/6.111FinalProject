@@ -4,7 +4,7 @@
 module threshold (
     input wire [6:0] pixel_in,
 	input wire [2:0] thresh_mux,
-    output logic pixel_out,
+    output logic pixel_out
     );
 
 	always_comb begin

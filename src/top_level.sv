@@ -249,6 +249,247 @@ module top_level(
     .cam_out(full_pixel)
     );
 
+  /////// FILTERS WRITE ////////// 
+
+  recover recover_m (
+    .cam_clk_in(cam_clk_in),
+    .valid_pixel_in(valid_pixel),
+    .pixel_in(pix_data),
+    .frame_done_in(frame_done),
+
+    .system_clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .pixel_out(pixel_data_rec),
+    .data_valid_out(data_valid_rec),
+    .hcount_out(hcount_rec),
+    .vcount_out(vcount_rec));
+
+  logic dither_valid;
+  logic [10:0] dither_hcount;
+  logic [9:0] dither_vcount;
+  logic [6:0] dither_pixel;
+
+  ditherConv ditherer(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
+
+    .data_valid_out(dither_valid),
+    .hcount_out(dither_hcount),
+    .vcount_out(dither_vcount),
+    .pixel_out(dither_pixel)
+    );
+
+    
+  logic[16:0] dither_addr;
+  assign dither_addr = (dither_vcount*240) + dither_hcount;
+
+  logic [16:0] dither_read;
+  assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-32);
+  logic [6:0] dither_out;
+
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    dither_frame (
+    //Write Side (16.67MHz)
+    .addra(dither_addr),
+    .clka(clk_65mhz),
+    .wea(dither_valid && !sw[15]),
+    .dina(dither_pixel),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    .addrb(dither_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(dither_out)
+  );
+
+
+  logic wave_valid;
+  logic [10:0] wave_hcount;
+  logic [9:0] wave_vcount;
+  logic [6:0] wave_pixel;
+
+  waveFilt waveFilt(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
+
+    .data_valid_out(wave_valid),
+    .hcount_out(wave_hcount),
+    .vcount_out(wave_vcount),
+    .pixel_out(wave_pixel)
+    );
+
+    
+  logic[16:0] wave_addr;
+  assign wave_addr = (wave_vcount*240) + wave_hcount;
+
+  logic [16:0] wave_read;
+  assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-32);
+  
+  logic [6:0] wave_out;
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    wave_frame (
+    //Write Side (16.67MHz)
+    .addra(wave_addr),
+    .clka(clk_65mhz),
+    .wea(wave_valid && !sw[15]),
+    .dina(wave_pixel),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    .addrb(wave_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(wave_out)
+  );
+  
+  logic ridge_valid;
+  logic [10:0] ridge_hcount;
+  logic [9:0] ridge_vcount;
+  logic [6:0] ridge_pixel;
+
+  filter #(.K_SELECT(3)) ridgeFilt(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .pixel_data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
+
+    .data_valid_out(ridge_valid),
+    .hcount_out(ridge_hcount),
+    .vcount_out(ridge_vcount),
+    .pixel_data_out(ridge_pixel)
+    );
+
+  
+  logic[16:0] ridge_addr;
+  assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
+
+  logic [16:0] ridge_read;
+  assign ridge_read = (hcount_pipe[0]-730)*240 + (vcount_pipe[0]-32);
+
+  logic[6:0] ridge_out;
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    ridge_frame (
+    //Write Side (16.67MHz)
+    .addra(ridge_addr),
+    .clka(clk_65mhz),
+    .wea(ridge_valid && !sw[15]),
+    .dina(ridge_pixel),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    .addrb(ridge_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(ridge_out)
+  );
+
+
+  logic id_valid;
+  logic [10:0] id_hcount;
+  logic [9:0] id_vcount;
+  logic [6:0] id_pixel;
+
+  filter #(.K_SELECT(0)) idFilt(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .pixel_data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
+
+    .data_valid_out(id_valid),
+    .hcount_out(id_hcount),
+    .vcount_out(id_vcount),
+    .pixel_data_out(id_pixel)
+    );
+
+    
+  logic[16:0] id_addr;
+  assign id_addr = (id_vcount*240) + id_hcount;
+
+  logic [16:0] id_read;
+  assign id_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-416);
+
+  logic[6:0] id_out;
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    id_frame (
+    //Write Side (16.67MHz)
+    .addra(id_addr),
+    .clka(clk_65mhz),
+    .wea(id_valid && !sw[15]),
+    .dina(id_pixel),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    .addrb(id_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(id_out)
+  );
+
+  
+  logic[6:0] filter_pixel_choose;
+  always_comb begin
+    if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
+      filter_pixel_choose = dither_out;
+    end
+    else if(hcount_pipe[2] >= 390 && hcount_pipe[2] < 630 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
+      filter_pixel_choose = wave_out;
+    end
+    else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
+      filter_pixel_choose = ridge_out;
+    end
+    else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
+      filter_pixel_choose = id_out;
+    end
+    else begin
+      filter_pixel_choose = 0;
+    end
+  end
+
     
   logic left, right;
   debouncer db_left (
@@ -263,42 +504,40 @@ module top_level(
     .clean_out(right));
 
   logic [3:0] gray_out = full_pixel[4:1];
-  logic [11:0] pixel_out;
+  logic [11:0] screen_mod_pixel_out;
   logic [2:0] filter_select_out;
   logic [1:0] threshold_select_out;
   logic state_1;
   screen screen_mod (
        .rst_in(sys_rst),
        .clk_in(clk_65mhz),
-       .hcount_in(hcount_pipe[5]),
-       .vcount_in(vcount_pipe[5]),
+       .hcount_in(hcount_pipe[2]),
+       .vcount_in(vcount_pipe[2]),
        .cam_img(gray_out),
        .sw_state(sw[15]),
        .middle_in(btnc),
        .left_in(btnl),
        .right_in(btnr),
-       .pixel_out(pixel_out),
+       .pixel_out(screen_mod_pixel_out),
        .filter_select_out(filter_select_out),
        .threshold_select_out(threshold_select_out),
        .state_1_over(state_1)
    );
-// state_1 == 1 indicates the we are ready to start processing 
+// state_1 == 1 indicates the we are ready to start processing
 
 
 // use this logic for writing to vga outside of state 1
-  logic [11:0] vga_pixel; 
-
   always_ff @(posedge clk_65mhz)begin
         //if still in state 1 displaying gray cam pix and sprites 
       if (!state_1)begin 
-           vga_r <= ~blank_pipe[3] ? (gray_out | pixel_out) : 0; 
-           vga_g <= ~blank_pipe[3] ? (gray_out | pixel_out) : 0; 
-           vga_b <= ~blank_pipe[3] ? (gray_out | pixel_out) : 0;
+           vga_r <= ~blank_pipe[3] ? (gray_out | screen_mod_pixel_out) : 0; 
+           vga_g <= ~blank_pipe[3] ? (gray_out | screen_mod_pixel_out) : 0; 
+           vga_b <= ~blank_pipe[3] ? (gray_out | screen_mod_pixel_out) : 0;
       end else
       begin
-           vga_r <= ~blank_pipe[3] ? pixel_out : 0; //TODO: needs to use pipelined signal (PS6)
-           vga_g <= ~blank_pipe[3] ? pixel_out : 0;  //TODO: needs to use pipelined signal (PS6)
-           vga_b <= ~blank_pipe[3] ? pixel_out : 0;  //TODO: needs to use pipelined signal (PS6)
+           vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0; //TODO: needs to use pipelined signal (PS6)
+           vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0;  //TODO: needs to use pipelined signal (PS6)
+           vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0;  //TODO: needs to use pipelined signal (PS6)
       end
   end
   assign vga_hs = ~hsync_pipe[4];  //TODO: needs to use pipelined signal (PS7)

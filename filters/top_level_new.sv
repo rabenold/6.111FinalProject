@@ -293,9 +293,6 @@ module top_level(
     .data_valid_out(data_valid_rec),
     .hcount_out(hcount_rec),
     .vcount_out(vcount_rec));
-  
-
-
 
   logic dither_valid;
   logic [10:0] dither_hcount;
@@ -316,7 +313,7 @@ module top_level(
     .pixel_out(dither_pixel)
     );
 
-  
+    
   logic[16:0] dither_addr;
   assign dither_addr = (dither_vcount*240) + dither_hcount;
 
