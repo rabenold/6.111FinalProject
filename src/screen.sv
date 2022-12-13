@@ -243,9 +243,7 @@ module screen (
                 end
             endcase
         end
-    end
-
-
+   end 
 endmodule 
 
 `default_nettype wire
