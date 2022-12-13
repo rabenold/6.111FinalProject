@@ -288,7 +288,7 @@ module top_level(
   assign dither_addr = (dither_vcount*240) + dither_hcount;
 
   logic [16:0] dither_read;
-  assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-32);
+  assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-26);
   logic [6:0] dither_out;
 
   xilinx_true_dual_port_read_first_2_clock_ram #(
@@ -340,7 +340,7 @@ module top_level(
   assign wave_addr = (wave_vcount*240) + wave_hcount;
 
   logic [16:0] wave_read;
-  assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-32);
+  assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-26);
   
   logic [6:0] wave_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
@@ -391,7 +391,7 @@ module top_level(
   assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
 
   logic [16:0] ridge_read;
-  assign ridge_read = (hcount_pipe[0]-730)*240 + (vcount_pipe[0]-32);
+  assign ridge_read = (hcount_pipe[0]-730)*240 + (vcount_pipe[0]-26);
 
   logic[6:0] ridge_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
@@ -443,7 +443,7 @@ module top_level(
   assign id_addr = (id_vcount*240) + id_hcount;
 
   logic [16:0] id_read;
-  assign id_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-416);
+  assign id_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-446);
 
   logic[6:0] id_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
