@@ -107,7 +107,7 @@ module top_level(
 
 
   //NEW FOR LAB 04B (START)----------------------------------------------
-  logic [15:0] pixel_data_rec; // pixel data from recovery module
+  logic [6:0] pixel_data_rec; // pixel data from recovery module
   logic [10:0] hcount_rec; //hcount from recovery module
   logic [9:0] vcount_rec; //vcount from recovery module
   logic  data_valid_rec; //single-cycle (65 MHz) valid data from recovery module
@@ -284,11 +284,30 @@ module top_level(
     );
 
     
-  logic[16:0] dither_addr;
-  assign dither_addr = (dither_vcount*240) + dither_hcount;
+   logic[16:0] dither_addr;
+  // assign dither_addr = (dither_vcount*240) + dither_hcount;
 
-  logic [16:0] dither_read;
-  assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-26);
+  always_comb begin
+    if(dither_hcount > 200)begin
+      dither_addr = 64000 + (dither_hcount - 200)*240 + dither_vcount;
+    end else if (dither_hcount > 100)begin
+      dither_addr = 32000 + (dither_hcount - 100)*240 + dither_vcount;
+    end begin
+      dither_addr = (dither_hcount*240) + dither_vcount;
+    end
+  end
+
+  logic [16:0] dither_read = 0;
+  // assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-32);
+
+  always_ff @(posedge clk_65mhz)begin
+    if(hcount_pipe[0]==390 && vcount_pipe[0]==32)begin
+      dither_read <= 76799;
+    end else if (hcount_pipe[0] >= 50 && hcount_pipe[0] < 290 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352)begin
+      dither_read <= dither_read - 1;
+    end
+  end
+
   logic [6:0] dither_out;
 
   xilinx_true_dual_port_read_first_2_clock_ram #(
@@ -337,11 +356,41 @@ module top_level(
 
     
   logic[16:0] wave_addr;
-  assign wave_addr = (wave_vcount*240) + wave_hcount;
+  // assign wave_addr = (wave_vcount*240) + wave_hcount;
 
-  logic [16:0] wave_read;
-  assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-26);
-  
+  always_comb begin
+    if(wave_hcount > 200)begin
+      wave_addr = 64000 + (wave_hcount - 200)*240 + wave_vcount;
+    end else if (ridge_hcount > 100)begin
+      wave_addr = 32000 + (wave_hcount - 100)*240 + wave_vcount;
+    end begin
+      wave_addr = (wave_hcount*240) + wave_vcount;
+    end
+  end
+
+  logic [16:0] wave_read = 0;
+  // assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-32);
+
+  // always_ff @(posedge clk_65mhz)begin
+  //   if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352)begin
+  //     if(vcount_pipe[0] > 232)begin
+  //       wave_read = 48000 + (vcount_pipe[0] - 232)*240 + hcount_pipe[0] - 390;
+  //     end else if (vcount_pipe[0] > 132) begin 
+  //       wave_read = 24000 + (vcount_pipe[0] - 132)*240 + hcount_pipe[0] - 390;
+  //     end begin
+  //       wave_read = ((vcount_pipe[0]-32)*240) + hcount_pipe[0]-390;
+  //     end
+  //   end
+  // end
+
+  always_ff@(posedge clk_65mhz) begin
+    if(hcount_pipe[0] == 390 && vcount_pipe[0] == 32)begin
+      wave_read <=76799;
+    end else if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352) begin
+      wave_read <= wave_read - 1;
+    end
+  end
+
   logic [6:0] wave_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
     .RAM_WIDTH(7),
@@ -372,7 +421,7 @@ module top_level(
   logic [9:0] ridge_vcount;
   logic [6:0] ridge_pixel;
 
-  filter #(.K_SELECT(3)) ridgeFilt(
+  filter #(.K_SELECT(1)) ridgeFilt(
     .clk_in(clk_65mhz),
     .rst_in(sys_rst),
     .pixel_data_in(pixel_data_rec),
@@ -388,10 +437,36 @@ module top_level(
 
   
   logic[16:0] ridge_addr;
-  assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
+  // assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
 
-  logic [16:0] ridge_read;
-  assign ridge_read = (hcount_pipe[0]-730)*240 + (vcount_pipe[0]-26);
+  always_comb begin
+    if(ridge_hcount > 200)begin
+      ridge_addr = 64000 + (ridge_hcount - 200)*240 + ridge_vcount;
+    end else if (ridge_hcount > 100)begin
+      ridge_addr = 32000 + (ridge_hcount - 100)*240 + ridge_vcount;
+    end begin
+      ridge_addr = (ridge_hcount*240) + ridge_vcount;
+    end
+  end
+
+  logic [16:0] ridge_read = 0;
+  always_ff@(posedge clk_65mhz) begin
+    if(hcount_pipe[0] == 730 && vcount_pipe[0] == 352)begin
+      ridge_read <=76799;
+    end else if (hcount_pipe[0] >= 730 && hcount_pipe[0] < 970 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352) begin
+      ridge_read <= ridge_read - 1;
+    end
+  end
+  // assign ridge_read = (vcount_pipe[0]-32)*240 + (hcount_pipe[0]-730);
+  // always_ff @(posedge clk_65mhz)begin
+  //   else if (hcount_pipe[0] >= 730 && hcount_pipe[0] < 970 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352)begin
+  //     if(vcount_pipe[0] > 192)begin
+  //       ridge_read = 38400 + (vcount_pipe[0] - 576)*240 + hcount_pipe[0] - 970;
+  //     end else begin
+  //       ridge_read = ((vcount_pipe[0]-32)*240) + hcount_pipe[0] -970;
+  //     end
+  //   end
+  // end
 
   logic[6:0] ridge_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
@@ -419,56 +494,70 @@ module top_level(
   );
 
 
-  logic id_valid;
-  logic [10:0] id_hcount;
-  logic [9:0] id_vcount;
-  logic [6:0] id_pixel;
+  // logic id_valid;
+  // logic [10:0] id_hcount;
+  // logic [9:0] id_vcount;
+  // logic [6:0] id_pixel;
 
-  filter #(.K_SELECT(0)) idFilt(
-    .clk_in(clk_65mhz),
-    .rst_in(sys_rst),
-    .pixel_data_in(pixel_data_rec),
-    .hcount_in(hcount_rec),
-    .vcount_in(vcount_rec),
-    .data_valid_in(data_valid_rec),
+  // filter #(.K_SELECT(0)) idFilt(
+  //   .clk_in(clk_65mhz),
+  //   .rst_in(sys_rst),
+  //   .pixel_data_in(pixel_data_rec),
+  //   .hcount_in(hcount_rec),
+  //   .vcount_in(vcount_rec),
+  //   .data_valid_in(data_valid_rec),
 
-    .data_valid_out(id_valid),
-    .hcount_out(id_hcount),
-    .vcount_out(id_vcount),
-    .pixel_data_out(id_pixel)
-    );
+  //   .data_valid_out(id_valid),
+  //   .hcount_out(id_hcount),
+  //   .vcount_out(id_vcount),
+  //   .pixel_data_out(id_pixel)
+  //   );
 
     
-  logic[16:0] id_addr;
-  assign id_addr = (id_vcount*240) + id_hcount;
+  // logic[16:0] id_addr;
+  // always_comb begin
+  //   if(id_vcount > 160)begin
+  //     id_addr = 38400 + (id_vcount - 160)*240 + id_hcount;
+  //   end else begin
+  //     id_addr = (id_vcount*240) + id_hcount;
+  //   end
+  // end
 
-  logic [16:0] id_read;
-  assign id_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-446);
+  // logic [16:0] id_read = 0;
+  // always_ff @(posedge clk_65mhz)begin
+  //   if (hcount_pipe[0] >= 50 && hcount_pipe[0] < 290 && vcount_pipe[0] >= 416 && vcount_pipe[0] < 736)begin
+  //     if(vcount_pipe[0] > 576)begin
+  //       id_read = 38400 + (vcount_pipe[0] - 576)*240 + hcount_pipe[0] - 290;
+  //     end else begin
+  //       id_read = ((vcount_pipe[0]-416)*240) + hcount_pipe[0]-290;
+  //     end
+  //   end
+  // end
 
-  logic[6:0] id_out;
-  xilinx_true_dual_port_read_first_2_clock_ram #(
-    .RAM_WIDTH(7),
-    .RAM_DEPTH(320*240))
-    id_frame (
-    //Write Side (16.67MHz)
-    .addra(id_addr),
-    .clka(clk_65mhz),
-    .wea(id_valid && !sw[15]),
-    .dina(id_pixel),             
-    .ena(1'b1),
-    .regcea(1'b1),
-    .rsta(sys_rst),
-    .douta(),
-    //Read Side (65 MHz)
-    .addrb(id_read),
-    .dinb(7'b0),
-    .clkb(clk_65mhz),
-    .web(1'b0),
-    .enb(1'b1),
-    .rstb(sys_rst),
-    .regceb(1'b1),
-    .doutb(id_out)
-  );
+  // logic[6:0] id_out;
+  // xilinx_true_dual_port_read_first_2_clock_ram #(
+  //   .RAM_WIDTH(7),
+  //   .RAM_DEPTH(320*240))
+  //   id_frame (
+  //   //Write Side (16.67MHz)
+  //   .addra(id_addr),
+  //   .clka(clk_65mhz),
+  //   .wea(id_valid && !sw[15]),
+  //   .dina(id_pixel),             
+  //   .ena(1'b1),
+  //   .regcea(1'b1),
+  //   .rsta(sys_rst),
+  //   .douta(),
+  //   //Read Side (65 MHz)
+  //   .addrb(id_read),
+  //   .dinb(7'b0),
+  //   .clkb(clk_65mhz),
+  //   .web(1'b0),
+  //   .enb(1'b1),
+  //   .rstb(sys_rst),
+  //   .regceb(1'b1),
+  //   .doutb(id_out)
+  // );
 
   
   logic[6:0] filter_pixel_choose;
@@ -482,9 +571,9 @@ module top_level(
     else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
       filter_pixel_choose = ridge_out;
     end
-    else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
-      filter_pixel_choose = id_out;
-    end
+    // else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
+    //   filter_pixel_choose = id_out;
+    // end
     else begin
       filter_pixel_choose = 0;
     end
