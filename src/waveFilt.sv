@@ -30,10 +30,10 @@ module waveFilt (
 
     assign hcount_sign = $signed({1'b0, vcount_in[8:0]});
 
-
+    // assign polyMid = (hcount_sign-120)
     always_comb begin 
         if (data_valid_in)begin
-            polyTop = (hcount_sign - 320)>>>4;
+            polyTop = (hcount_sign - 240)>>>4;
             polyMid = (hcount_sign - 120)>>>3;
             polyBot = (hcount_sign)>>>4;
 
@@ -46,6 +46,10 @@ module waveFilt (
             end else begin 
                 vcount_out = finalOffset + 320;
             end
+            // if(hcount_in > 120)begin
+            // end else begin
+
+            // end
         end else begin
             vcount_out = 0;
         end

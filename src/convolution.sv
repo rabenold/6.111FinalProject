@@ -31,7 +31,7 @@ module convolution #(
     logic[1:0] valid_pipe;
     logic[1:0] [10:0] hcount_pipe;
     logic[1:0] [9:0] vcount_pipe;
-    logic signed [6:0] top_sum, mid_sum, bot_sum;
+    logic signed [10:0] top_sum, mid_sum, bot_sum;
     always @(*) begin
         top_sum = ($signed({1'b0, mat[0][0]}) * $signed(coeffs[0][0])) + ($signed({1'b0, mat[0][1]}) * $signed(coeffs[0][1])) + ($signed({1'b0, mat[0][2]}) * $signed(coeffs[0][2]));
         
@@ -54,7 +54,7 @@ module convolution #(
 
             end
             
-            line_out <= ((top_sum+mid_sum+bot_sum) >>> shift)>0? ((top_sum+mid_sum+bot_sum) >>> shift):0;
+            line_out <= ((top_sum+mid_sum+bot_sum) >>> shift)>=0? ((top_sum+mid_sum+bot_sum) >>> shift):0;
 
         end
     end

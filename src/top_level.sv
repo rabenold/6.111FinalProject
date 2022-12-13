@@ -421,7 +421,7 @@ module top_level(
   logic [9:0] ridge_vcount;
   logic [6:0] ridge_pixel;
 
-  filter #(.K_SELECT(1)) ridgeFilt(
+  filter #(.K_SELECT(3)) ridgeFilt(
     .clk_in(clk_65mhz),
     .rst_in(sys_rst),
     .pixel_data_in(pixel_data_rec),
