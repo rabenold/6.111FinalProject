@@ -333,12 +333,20 @@ module top_level(
     if(dither_vcount > 160)begin
       dither_addr = 38400 + (dither_vcount - 160)*240 + dither_hcount
     end else begin
-      dither_addr = (dither_vcount*240) + dither_hcount;
+      dither_addr = (dither_vcount*240) + wave_hcount;
     end
   end
 
   logic [16:0] dither_read;
-  assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-32);
+  // assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-32);
+
+  always_ff @(posedge clk_65mhz)begin
+    if(hcount_pipe==390&&vcount_pipe==32)begin
+      dither_read <=0;
+    end else if (hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 32 && vcount_pipe[2] < 352)begin
+      dither_read <= wave_read+1;
+    end
+  end
   logic [6:0] dither_out;
 
   
@@ -400,7 +408,15 @@ module top_level(
   end
 
   logic [16:0] wave_read;
-  assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-32);
+  // assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-32);
+
+  always_ff @(posedge clk_65mhz)begin
+    if(hcount_pipe==390&&vcount_pipe==32)begin
+      wave_read <=0;
+    end else if (hcount_pipe[2] >= 390 && hcount_pipe[2] < 630 && vcount_pipe[2] >= 32 && vcount_pipe[2] < 352)begin
+      wave_read <= wave_read+1;
+    end
+  end
   
   logic [6:0] wave_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
@@ -453,14 +469,21 @@ module top_level(
 
   always_comb begin
     if(ridge_vcount > 160)begin
-      ridge_addr = 38400 + (ridge_vcount - 160)*240 + ridge_hcount
+      ridge_addr = 38400 + (ridge_vcount - 160)*240 + ridge_hcount;
     end else begin
       ridge_addr = (ridge_vcount*240) + ridge_hcount;
     end
   end
 
-  logic [16:0] ridge_read;
-  assign ridge_read = (hcount_pipe[0]-730)*240 + (vcount_pipe[0]-32);
+  logic [16:0] ridge_read = 0;
+  // assign ridge_read = (hcount_pipe[0]-730)*240 + (vcount_pipe[0]-32);
+  always_ff @(posedge clk_65mhz)begin
+    if(hcount_pipe==730&&vcount_pipe==32)begin
+      ridge_read <=0;
+    end else if (hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 32 && vcount_pipe[2] < 352)begin
+      ridge_read <= ridge_read+1;
+    end
+  end
 
   logic[6:0] ridge_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
