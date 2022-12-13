@@ -279,6 +279,15 @@ module top_level(
 
 
 
+
+
+
+
+
+
+
+
+
   /////// FILTERS WRITE ////////// 
 
   recover recover_m (
@@ -533,6 +542,11 @@ module top_level(
       filter_pixel_choose = 0;
     end
   end
+
+
+
+
+
 
   // logic[2:0] photobooth_state
   // //////////STATE MACHINE////////////

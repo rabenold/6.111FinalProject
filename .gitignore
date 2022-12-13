@@ -178,3 +178,5 @@ cython_debug/
 
 *.vcd
 *.out
+*.bit
+*.log
