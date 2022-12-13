@@ -561,21 +561,45 @@ module top_level(
 
   
   logic[6:0] filter_pixel_choose;
+  logic [6:0] threshold_pixel_choose;
   always_comb begin
-    if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
-      filter_pixel_choose = dither_out;
+    if (start_over & ~filters_over & ~threshold_over) begin
+      if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
+        filter_pixel_choose = dither_out;
+      end
+      else if(hcount_pipe[2] >= 390 && hcount_pipe[2] < 630 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
+        filter_pixel_choose = wave_out;
+      end
+      else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
+        filter_pixel_choose = ridge_out;
+      end
+      else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
+        filter_pixel_choose = id_out;
+      end
+      else begin
+        filter_pixel_choose = 0;
+      end
     end
-    else if(hcount_pipe[2] >= 390 && hcount_pipe[2] < 630 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
-      filter_pixel_choose = wave_out;
+    else if (start_over & filters_over & ~threshold_over) begin
+      if (hcount_pipe[2] >= 8 & hcount_pipe[2] < 248 & vcount_pipe[2] >= 200 & vcount_pipe[2] < 520) begin //box 1
+          threshold_pixel_choose = chosen_filtered_image;
+      end
+      else if (hcount_pipe[2] >= 264 & hcount_pipe[2] < 504 & vcount_pipe[2] >= 200 & vcount_pipe[2] < 520) begin //box 2
+          threshold_pixel_choose = chosen_filtered_image;
+      end
+      else if (hcount_pipe[2] >= 520 & hcount_pipe[2] < 760 & vcount_pipe[2] >= 200 & vcount_pipe[2] < 520) begin //box 3
+          threshold_pixel_choose = chosen_filtered_image;
+      end
+      else if (hcount_pipe[2] >= 776 & hcount_pipe[2] < 1016 & vcount_pipe[2] >= 200 & vcount_pipe[2] < 520) begin //box 4
+          threshold_pixel_choose = chosen_filtered_image;
+      end
+      else begin
+        threshold_pixel_choose = 0;
+      end
     end
-    else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
-      filter_pixel_choose = ridge_out;
-    end
-    // else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
-    //   filter_pixel_choose = id_out;
-    // end
     else begin
       filter_pixel_choose = 0;
+      threshold_pixel_choose = 0;
     end
   end
 
@@ -596,7 +620,10 @@ module top_level(
   logic [11:0] screen_mod_pixel_out;
   logic [2:0] filter_select_out;
   logic [1:0] threshold_select_out;
-  logic state_1;
+
+  logic start_over;
+  logic filters_over;
+  logic threshold_over;
   screen screen_mod (
        .rst_in(sys_rst),
        .clk_in(clk_65mhz),
@@ -610,23 +637,58 @@ module top_level(
        .pixel_out(screen_mod_pixel_out),
        .filter_select_out(filter_select_out),
        .threshold_select_out(threshold_select_out),
-       .state_1_over(state_1)
+       .start_over(start_over),
+       .filters_over(filters_over),
+       .threshold_over(threshold_over)
    );
-// state_1 == 1 indicates the we are ready to start processing
 
-
-// use this logic for writing to vga outside of state 1
+  logic [6:0] chosen_filtered_image;
+  // use this logic for writing to vga outside of state 1
   always_ff @(posedge clk_65mhz)begin
-        //if still in state 1 displaying gray cam pix and sprites 
-      if (!state_1)begin 
+
+      case (filter_select_out)
+        3'b000: begin
+          chosen_filtered_image <= dither_out;
+        end
+        3'b001: begin
+          chosen_filtered_image <= wave_out;
+        end
+        3'b010: begin
+          chosen_filtered_image <= ridge_out;
+        end
+        3'b011: begin
+          chosen_filtered_image <= id_out;
+        end
+        3'b100: begin
+          chosen_filtered_image <= dither_out; //CHANGE
+        end
+        3'b101: begin
+          chosen_filtered_image <= dither_out; //CHANGE
+        end
+        default: begin
+          chosen_filtered_image <= dither_out; //CHANGE TO ID_OUT
+        end
+      endcase
+
+      if (~start_over & ~filters_over & ~threshold_over)begin 
            vga_r <= ~blank_pipe[3] ? (gray_out | screen_mod_pixel_out) : 0; 
            vga_g <= ~blank_pipe[3] ? (gray_out | screen_mod_pixel_out) : 0; 
            vga_b <= ~blank_pipe[3] ? (gray_out | screen_mod_pixel_out) : 0;
-      end else
-      begin
-           vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0; //TODO: needs to use pipelined signal (PS6)
-           vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0;  //TODO: needs to use pipelined signal (PS6)
-           vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0;  //TODO: needs to use pipelined signal (PS6)
+      end
+      else if (start_over & ~filters_over & ~threshold_over) begin
+           vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0; 
+           vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0;  
+           vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0; 
+      end
+      else if (start_over & filters_over & ~threshold_over) begin
+           vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | threshold_pixel_choose) : 0; 
+           vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | threshold_pixel_choose) : 0;  
+           vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | threshold_pixel_choose) : 0; 
+      end
+      else begin
+           vga_r <= 0; 
+           vga_g <= 0;  
+           vga_b <= 0; 
       end
   end
   assign vga_hs = ~hsync_pipe[4];  //TODO: needs to use pipelined signal (PS7)
@@ -636,4 +698,5 @@ module top_level(
 
 endmodule
 `default_nettype wire 
+
 

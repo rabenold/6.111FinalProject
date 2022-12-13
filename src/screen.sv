@@ -1,4 +1,3 @@
-
 `timescale 1ns / 1ps
 `default_nettype none
 
@@ -16,7 +15,9 @@ module screen (
     output logic [11:0] pixel_out,
     output logic [2:0] filter_select_out,
     output logic [2:0] threshold_select_out,
-    output logic state_1_over
+    output logic start_over,
+    output logic filters_over,
+    output logic threshold_over
     );
 
 
@@ -48,7 +49,6 @@ module screen (
         .y_in(400), 
         .vcount_in(vcount_in), 
         .pixel_out(pixel_out_instructions));
-
 
     // filter select logic
     logic use_up_arrow;
@@ -87,22 +87,6 @@ module screen (
         .pixel_out(filter_screen_instructions_pixel_out)
         );
 
-
-    // threshold select logic
-    logic [10:0] threshold_arrow_x;
-    logic [9:0] threshold_arrow_y;
-    logic [11:0] threshold_arrow_pixel_out;
-    up_arrow_sprite #(.WIDTH(100), .HEIGHT(100)) threshold_up_arrow 
-        (.pixel_clk_in(clk_in), 
-        .rst_in(rst_in), 
-        .x_in(threshold_arrow_x), 
-        .hcount_in(hcount_in), 
-        .y_in(threshold_arrow_y), 
-        .vcount_in(vcount_in), 
-        .pixel_out(threshold_arrow_pixel_out)
-        );
-
-
     // edge detection logic 
     logic old_left;
     logic old_right;
@@ -122,12 +106,15 @@ module screen (
     
     // state machine logic
     parameter START = 0;
-    parameter DISPLAY = 1;
-    parameter THRESH = 2;
+    parameter FILTERS = 1;
+    parameter THRESHOLD = 2;
+    parameter SEND = 3;
     logic [1:0] state;
     always_ff @(posedge clk_in) begin
         if (rst_in) begin
-            state_1_over <= 0;
+            start_over <= 0;
+            filters_over <= 0;
+            threshold_over <= 0;
             state <= START;
             done_start <= 0;
             filter_select_out <= 0;
@@ -144,11 +131,11 @@ module screen (
                         pixel_out <= sw_state ? (pixel_out_photobooth | pixel_out_start_instructions | pixel_out_instructions) : (pixel_out_photobooth | pixel_out_start_instructions);
                     end
                     else begin
-                        state_1_over <= 1;
-                        state <= DISPLAY;
+                        start_over <= 1;
+                        state <= FILTERS;
                     end
                 end
-                DISPLAY: begin
+                FILTERS: begin
                     case (filter_select_out)
                         3'b000: begin
                             use_up_arrow <= 1;
@@ -196,29 +183,30 @@ module screen (
                         end
                     end 
                     if (middle_in & ~old_middle) begin
-                        state <= THRESH;
+                        state <= THRESHOLD;
+                        filters_over <= 1;
                         use_up_arrow <= 1;
                     end else begin
                         pixel_out <= select_pixel_out | filter_screen_instructions_pixel_out;
                     end
                 end
-                THRESH: begin
+                THRESHOLD: begin
                     case (threshold_select_out)
                         2'b00: begin
-                            threshold_arrow_x <= 78;
-                            threshold_arrow_y <= 560;
+                            arrow_x <= 78;
+                            arrow_y <= 560;
                         end
                         2'b01: begin
-                            threshold_arrow_x <= 334;
-                            threshold_arrow_y <= 560;
+                            arrow_x <= 334;
+                            arrow_y <= 560;
                         end
                         2'b10: begin
-                            threshold_arrow_x <= 590;
-                            threshold_arrow_y <= 560;
+                            arrow_x <= 590;
+                            arrow_y <= 560;
                         end
                         2'b11: begin
-                            threshold_arrow_x <= 846;
-                            threshold_arrow_y <= 560;
+                            arrow_x <= 846;
+                            arrow_y <= 560;
                         end
                     endcase
                     if (right_click) begin
@@ -235,11 +223,15 @@ module screen (
                             threshold_select_out <= threshold_select_out - 1;
                         end
                     end
-                    if (middle_click) begin
-                        pixel_out <= 12'hFFF;
+                    if (middle_in & ~old_middle) begin
+                        threshold_over <= 1;
+                        state <= SEND;
                     end else begin
-                        pixel_out <= threshold_arrow_pixel_out;
+                        pixel_out <= up_arrow_pixel_out;
                     end
+                end
+                SEND: begin
+                    pixel_out <= 12'hFFF;
                 end
             endcase
         end

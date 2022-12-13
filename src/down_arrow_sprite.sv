@@ -3,13 +3,15 @@
 
 `include "iverilog_hack.svh"
 
-module down_arrow_sprite #(
-  parameter WIDTH=100, HEIGHT=100) (
+module down_arrow_sprite (
   input wire pixel_clk_in,
   input wire rst_in,
   input wire [10:0] x_in, hcount_in,
   input wire [9:0]  y_in, vcount_in,
   output logic [11:0] pixel_out);
+
+  parameter WIDTH=100;
+  parameter HEIGHT=100;
 
   // calculate rom address
   logic [$clog2(WIDTH*HEIGHT)-1:0] image_addr;

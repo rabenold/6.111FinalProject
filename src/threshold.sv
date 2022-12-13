@@ -3,7 +3,7 @@
 
 module threshold (
     input wire [6:0] pixel_in,
-	input wire [2:0] thresh_mux,
+	input wire [1:0] thresh_mux,
     output logic pixel_out
     );
 
