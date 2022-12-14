@@ -209,6 +209,19 @@ module top_level(
 
 //pipeline hcount vcount? 
 
+  recover recover_m (
+    .cam_clk_in(cam_clk_in),
+    .valid_pixel_in(valid_pixel),
+    .pixel_in(pix_data),
+    .frame_done_in(frame_done),
+
+    .system_clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .pixel_out(pixel_data_rec),
+    .data_valid_out(data_valid_rec),
+    .hcount_out(hcount_rec),
+    .vcount_out(vcount_rec));
+
   logic thresh_pixel_out; 
 
   threshold threshold(
@@ -227,8 +240,8 @@ module top_level(
     .rst_in(sys_rst),
     .data_valid_in(valid_pixel_rotate && !sw[15]),
     .pixel_data_in(thresh_pixel_out),
-    .hcount_in(hcount_pipe[2]),
-    .vcount_in(vcount_pipe[2]),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
     .data_valid_out(pixel_avg_valid),
     .pixel_data_out(pixel_avg_data_out),
     .hcount_out(pix_avg_hcount), 
@@ -237,6 +250,72 @@ module top_level(
    
     //addr rotate2 
 
+  logic [10:0] pix_avg_hcount_prev;
+  logic [9:0] pix_avg_vcount_prev;
+
+  logic [10:0] pix_avg_hcount_enter;
+  logic [9:0] pix_avg_vcount_enter;
+
+  logic[1:0] vcount_mod;
+  logic[1:0] hcount_mod;
+  logic write_avg;
+  always_ff @(posedge clk_65mhz)begin
+    if(pixel_avg_valid) begin
+      if(pix_avg_hcount ==0 && pix_avg_hcount==0)begin
+        vcount_mod <=2;
+        hcount_mod <=2;
+        pix_avg_hcount_enter <=0;
+        pix_avg_vcount_enter <=0;
+        write_avg <= 0;
+      end else begin
+        pix_avg_hcount_prev <= pix_avg_hcount;
+        pix_avg_vcount_prev <= pix_avg_vcount;
+        
+        if(pix_avg_vcount_prev!=pix_avg_vcount) begin
+          if(vcount_mod==0)begin
+            vcount_mod <= 2;
+          end else begin
+            vcount_mod <= vcount_mod - 2;
+          end
+        end
+
+        if(pix_avg_hcount_prev!=pix_avg_hcount) begin
+          if(hcount_mod==0)begin
+            hcount_mod <= 2;
+          end else begin
+            hcount_mod <= hcount_mod - 2;
+          end
+        end
+
+        if(vcount_mod==1&&hcount_mod==1)begin
+          if(pix_avg_hcount_enter==79)begin
+            pix_avg_hcount_enter <=0;
+            pix_avg_vcount_enter <=pix_avg_vcount_enter+1;
+          end else begin
+            pix_avg_hcount_enter <=pix_avg_hcount_enter+1;
+          end
+          write_avg <= 1;
+        end else begin 
+          write_avg <= 0;
+        end
+
+      end
+    end
+  end
+
+  logic avg_bram_in;
+  logic [16:0] avg_addr;
+  logic avg_write_bram;
+  rotate2_small rotateAvg(
+    .clk_in(clk_65mhz),
+    .hcount_in(pix_avg_hcount_enter),
+    .vcount_in(pix_avg_vcount_enter),
+    .data_valid_in(write_avg),
+    .pixel_in(pixel_avg_data_out),
+    .pixel_out(avg_bram_in),
+    .pixel_addr_out(avg_addr),
+    .data_valid_out(avg_write_bram)
+  );
 
 
   xilinx_true_dual_port_read_first_2_clock_ram #(
@@ -244,10 +323,10 @@ module top_level(
     .RAM_DEPTH(106*80))
     black_white (
     //Write Side (16.67MHz)
-    .addra(pixel_addr_in),
+    .addra(avg_addr),
     .clka(clk_65mhz),
-    .wea(valid_pixel_rotate && !sw[15]),
-    .dina({pix_data[6:2],pix_data[6:1],pix_data[6:2]}),             
+    .wea(avg_write_bram && !sw[15]),
+    .dina(avg_bram_in),             
     .ena(1'b1),
     .regcea(1'b1),
     .rsta(sys_rst),
