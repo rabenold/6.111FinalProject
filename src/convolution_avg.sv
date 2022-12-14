@@ -22,7 +22,7 @@ module convolution_avg (
     logic[1:0] valid_pipe;
     logic[1:0] [10:0] hcount_pipe;
     logic[1:0] [9:0] vcount_pipe;
-    logic signed [1:0] top_sum, mid_sum, bot_sum;
+    logic signed [2:0] top_sum, mid_sum, bot_sum;
     always @(*) begin
         top_sum = mat[0][0]+mat[0][1]+mat[0][2];
         mid_sum = mat[1][0]+mat[1][1]+mat[1][2];
@@ -42,7 +42,7 @@ module convolution_avg (
 
             end
             
-            if((top_sum+mid_sum+bot_sum)>4) begin
+            if((top_sum+mid_sum+bot_sum)>0) begin
                 pixel_out <= 1;
             end else begin
                 pixel_out <=0;

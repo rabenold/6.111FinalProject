@@ -321,22 +321,31 @@ module top_level(
     logic black_white_out; 
 
     logic [16:0] small_pix_addr_out;
+    logic[16:0] small_pix_addr_out_other;
+
+    always_ff @(posedge clk_65mhz)begin
+    if(hcount_pipe[0]==600 && vcount_pipe[0]==250)begin
+      small_pix_addr_out_other <= 8480;
+    end else if (hcount_pipe[0] >= 600 && hcount_pipe[0] < 680 && vcount_pipe[0] >= 250 && vcount_pipe[0] < 356)begin
+      small_pix_addr_out_other <= small_pix_addr_out_other - 1;
+    end
+  end
 
 xilinx_true_dual_port_read_first_2_clock_ram #(
    .RAM_WIDTH(1),
    .RAM_DEPTH(106*80))
    black_white (
    //Write Side (16.67MHz)
-   .addra(avg_addr),
+   .addra(small_pix_addr_out),
    .clka(clk_65mhz),
-   .wea(avg_write_bram && !sw[15]),
-   .dina(avg_bram_in),             
+   .wea(1'b1),
+   .dina(1'b1),             
    .ena(1'b1),
    .regcea(1'b1),
    .rsta(sys_rst),
    .douta(),
    //Read Side (65 MHz)
-   .addrb(small_pix_addr_out),
+   .addrb(small_pix_addr_out_other),
    .dinb(16'b0),
    .clkb(clk_65mhz),
    .web(1'b0),
@@ -393,6 +402,7 @@ xilinx_true_dual_port_read_first_2_clock_ram #(
     .vcount_in(vcount_pipe[2]-450),
     .pixel_addr_out(small_pix_addr_out)
   );
+
  logic small_full_pixel;
 
   scale scale_s(
@@ -405,7 +415,13 @@ xilinx_true_dual_port_read_first_2_clock_ram #(
 
    
     logic [3:0] bw_pix_out; 
-    assign bw_pix_out = small_full_pixel ? 4'b111 : 4'b000;
+    always_comb begin
+      if (hcount_pipe[0] >= 600 && hcount_pipe[0] < 680 && vcount_pipe[0] >= 250 && vcount_pipe[0] < 356)begin
+        bw_pix_out = black_white_out ? 4'b1111 : 4'b0000;
+      end else begin
+        bw_pix_out = 0;
+      end
+    end
 
 
 //initial camera image 

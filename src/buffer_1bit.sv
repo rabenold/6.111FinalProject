@@ -26,7 +26,7 @@ module buffer_1bit (
   logic bram0_dout_b, bram1_dout_b, bram2_dout_b, bram3_dout_b;
 
   logic new_line;
-
+ 
   // pipelining
   logic data_valid_pipe [2:0];
   logic [10:0] hcount_pipe [2:0];
