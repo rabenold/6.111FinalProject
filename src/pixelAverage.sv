@@ -40,7 +40,7 @@ module pixelAverage #(parameter K_SELECT=0)(
     .data_valid_in(b_to_c_valid),
     .hcount_in(hcount_buff),
     .vcount_in(vcount_buff),
-    .line_out(pixel_data_out),
+    .pixel_out(pixel_data_out), //changed this from line out 
     .data_valid_out(data_valid_out),
     .hcount_out(hcount_out),
     .vcount_out(vcount_out)
