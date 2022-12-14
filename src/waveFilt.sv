@@ -28,16 +28,20 @@ module waveFilt (
     logic signed [9:0] hcount_sign;
     logic signed [9:0] finalOffset;
 
-    assign hcount_sign = $signed({1'b0, vcount_in[8:0]});
+    assign hcount_sign = $signed({1'b0, hcount_in[8:0]});
 
     // assign polyMid = (hcount_sign-120)
     always_comb begin 
         if (data_valid_in)begin
-            polyTop = (hcount_sign - 240)>>>4;
-            polyMid = (hcount_sign - 120)>>>3;
-            polyBot = (hcount_sign)>>>4;
+            polyTop = (hcount_sign - 240)>>>3;
+            polyMid = (hcount_sign - 120)>>>4;
+            polyBot = (-hcount_sign)>>>3;
 
-            finalOffset = polyTop*polyMid*polyBot + $signed({1'b0, vcount_in});
+            if(hcount_in>120)begin
+                finalOffset = polyMid * polyTop + $signed({1'b0, vcount_in});
+            end else begin 
+                finalOffset = polyMid * polyBot + $signed({1'b0, vcount_in});
+            end
 
             if(finalOffset > 320) begin
                 vcount_out = finalOffset - 320;

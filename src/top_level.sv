@@ -457,16 +457,6 @@ module top_level(
       ridge_read <= ridge_read - 1;
     end
   end
-  // assign ridge_read = (vcount_pipe[0]-32)*240 + (hcount_pipe[0]-730);
-  // always_ff @(posedge clk_65mhz)begin
-  //   else if (hcount_pipe[0] >= 730 && hcount_pipe[0] < 970 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352)begin
-  //     if(vcount_pipe[0] > 192)begin
-  //       ridge_read = 38400 + (vcount_pipe[0] - 576)*240 + hcount_pipe[0] - 970;
-  //     end else begin
-  //       ridge_read = ((vcount_pipe[0]-32)*240) + hcount_pipe[0] -970;
-  //     end
-  //   end
-  // end
 
   logic[6:0] ridge_out;
   xilinx_true_dual_port_read_first_2_clock_ram #(
@@ -574,7 +564,7 @@ module top_level(
         filter_pixel_choose = ridge_out;
       end
       else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
-        filter_pixel_choose = id_out;
+        // filter_pixel_choose = id_out;
       end
       else begin
         filter_pixel_choose = 0;
@@ -657,7 +647,7 @@ module top_level(
           chosen_filtered_image <= ridge_out;
         end
         3'b011: begin
-          chosen_filtered_image <= id_out;
+          // chosen_filtered_image <= id_out;
         end
         3'b100: begin
           chosen_filtered_image <= dither_out; //CHANGE
