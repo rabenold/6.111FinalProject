@@ -225,8 +225,8 @@ module top_level(
   logic thresh_pixel_out; 
 
  threshold threshold(
-     .pixel_in(frame_buff),
-     .thresh_mux(1),
+     .pixel_in(pixel_data_rec),
+     .thresh_mux(0),
      .pixel_out(thresh_pixel_out)
  );
 
@@ -239,7 +239,7 @@ module top_level(
  pixelAverage pixelAverage(
    .clk_in(clk_65mhz),
    .rst_in(sys_rst),
-   .data_valid_in(valid_pixel_rotate && !sw[15]),
+   .data_valid_in(data_valid_rec && !sw[15]),
    .pixel_data_in(thresh_pixel_out),
    .hcount_in(hcount_rec),
    .vcount_in(vcount_rec),
@@ -262,73 +262,79 @@ module top_level(
   logic write_avg;
   always_ff @(posedge clk_65mhz)begin
     if(pixel_avg_valid) begin
-      if(pix_avg_hcount ==0 && pix_avg_hcount==0)begin
+      if(pix_avg_hcount ==0 && pix_avg_vcount==0)begin
         vcount_mod <=2;
         hcount_mod <=2;
         pix_avg_hcount_enter <=0;
         pix_avg_vcount_enter <=0;
-        write_avg <= 0;
+        write_avg <= 1;
       end else begin
-        pix_avg_hcount_prev <= pix_avg_hcount;
-        pix_avg_vcount_prev <= pix_avg_vcount;
+        // pix_avg_hcount_prev <= pix_avg_hcount;
+        // pix_avg_vcount_prev <= pix_avg_vcount;
         
-        if(pix_avg_vcount_prev!=pix_avg_vcount) begin
-          if(vcount_mod==0)begin
-            vcount_mod <= 2;
-          end else begin
-            vcount_mod <= vcount_mod - 2;
-          end
-        end
+        // if(pix_avg_vcount_prev!=pix_avg_vcount) begin
+        //   if(vcount_mod==0)begin
+        //     vcount_mod <= 2;
+        //   end else begin
+        //     vcount_mod <= vcount_mod - 1;
+        //   end
+        // end
 
-        if(pix_avg_hcount_prev!=pix_avg_hcount) begin
-          if(hcount_mod==0)begin
-            hcount_mod <= 2;
-          end else begin
-            hcount_mod <= hcount_mod - 2;
-          end
-        end
+        // if(pix_avg_hcount_prev!=pix_avg_hcount) begin
+        //   if(hcount_mod==0)begin
+        //     hcount_mod <= 2;
+        //   end else begin
+        //     hcount_mod <= hcount_mod - 1;
+        //   end
+        // end
 
-        if(vcount_mod==1&&hcount_mod==1)begin
-          if(pix_avg_hcount_enter==79)begin
-            pix_avg_hcount_enter <=0;
-            pix_avg_vcount_enter <=pix_avg_vcount_enter+1;
-          end else begin
-            pix_avg_hcount_enter <=pix_avg_hcount_enter+1;
-          end
-          write_avg <= 1;
-        end else begin 
-          write_avg <= 0;
+        // if(vcount_mod==1&&hcount_mod==1)begin
+        //   if(pix_avg_hcount_enter==105)begin
+        //     pix_avg_hcount_enter <=0;
+        //     pix_avg_vcount_enter <=pix_avg_vcount_enter+1;
+        //   end else begin
+        //     pix_avg_hcount_enter <=pix_avg_hcount_enter+1;
+        //   end
+        //   write_avg <= 1;
+        // end else begin 
+        //   write_avg <= 0;
+        // end
+        if(pix_avg_hcount%3==0 && pix_avg_vcount%3==0)begin
+          pix_avg_hcount_enter <= pix_avg_hcount/3;
+          pix_avg_vcount_enter <= pix_avg_vcount/3;
+          write_avg <=1;
+        end else begin
+          write_avg <=0;
         end
-
       end
     end
   end
 
- logic avg_bram_in;
- logic [16:0] avg_addr;
- logic avg_write_bram;
- rotate2_small rotateAvg(
-   .clk_in(clk_65mhz),
-   .hcount_in(pix_avg_hcount_enter),
-   .vcount_in(pix_avg_vcount_enter),
-   .data_valid_in(write_avg),
-   .pixel_in(pixel_avg_data_out),
-   .pixel_out(avg_bram_in),
-   .pixel_addr_out(avg_addr),
-   .data_valid_out(avg_write_bram)
- );
+//  logic avg_bram_in;
+//  logic [16:0] avg_addr;
+//  logic avg_write_bram;
+//  rotate2 rotateAvg(
+//    .clk_in(clk_65mhz),
+//    .hcount_in(pix_avg_hcount_enter),
+//    .vcount_in(pix_avg_vcount_enter),
+//    .data_valid_in(write_avg),
+//    .pixel_in(pixel_avg_data_out),
+//    .pixel_out(avg_bram_in),
+//    .pixel_addr_out(avg_addr),
+//    .data_valid_out(avg_write_bram)
+//  );
 
-    logic black_white_out; 
+  logic black_white_out; 
 
-    logic [16:0] small_pix_addr_out;
-    logic[16:0] small_pix_addr_out_other;
-
-    always_ff @(posedge clk_65mhz)begin
-    small_pix_addr_out = (pix_avg_hcount/3*80) + pix_avg_vcount/3;
+  logic [16:0] small_pix_addr_out;
+  logic[16:0] small_pix_addr_read;
+  // assign small_pix_addr_out = (pix_avg_vcount_enter*80) + pix_avg_hcount_enter;
+  always_ff @(posedge clk_65mhz)begin
+    small_pix_addr_out <= (pix_avg_hcount_enter*80) + pix_avg_vcount_enter;
     if(hcount_pipe[0]==600 && vcount_pipe[0]==250)begin
-      small_pix_addr_out_other <= 8480;
+      small_pix_addr_read <= 8480;
     end else if (hcount_pipe[0] >= 600 && hcount_pipe[0] < 680 && vcount_pipe[0] >= 250 && vcount_pipe[0] < 356)begin
-      small_pix_addr_out_other <= small_pix_addr_out_other - 1;
+      small_pix_addr_read <= small_pix_addr_read - 1;
     end
   end
 
@@ -339,14 +345,14 @@ xilinx_true_dual_port_read_first_2_clock_ram #(
    //Write Side (16.67MHz)
    .addra(small_pix_addr_out),
    .clka(clk_65mhz),
-   .wea(1'b1),
-   .dina(thresh_pixel_out),             
+   .wea(write_avg),
+   .dina(pixel_avg_data_out),             
    .ena(1'b1),
    .regcea(1'b1),
    .rsta(sys_rst),
    .douta(),
    //Read Side (65 MHz)
-   .addrb(small_pix_addr_out_other),
+   .addrb(small_pix_addr_read),
    .dinb(16'b0),
    .clkb(clk_65mhz),
    .web(1'b0),
@@ -355,6 +361,44 @@ xilinx_true_dual_port_read_first_2_clock_ram #(
    .regceb(1'b1),
    .doutb(black_white_out)
  );
+
+
+//   logic [16:0] avg_addr_big;
+//   logic[16:0] avg_addr_read = 0;
+//   // assign small_pix_addr_out = (pix_avg_vcount_enter*80) + pix_avg_hcount_enter;
+//   always_ff @(posedge clk_65mhz)begin
+//     avg_addr_big <= (pix_avg_hcount*240) + pix_avg_vcount;
+//     if(hcount_pipe[0] == 730 && vcount_pipe[0] == 446)begin
+//       avg_addr_read <=76799;
+//     end else if (hcount_pipe[0] >= 730 && hcount_pipe[0] < 970 && vcount_pipe[0] >= 126 && vcount_pipe[0] < 446) begin
+//       avg_addr_read <= avg_addr_read - 1;
+//     end
+//   end
+
+
+//  xilinx_true_dual_port_read_first_2_clock_ram #(
+//    .RAM_WIDTH(7),
+//    .RAM_DEPTH(320*240))
+//    avg_pic (
+//    //Write Side (16.67MHz)
+//    .addra(avg_addr_big),
+//    .clka(clk_65mhz),
+//    .wea(pixel_avg_valid),
+//    .dina(pixel_avg_data_out),             
+//    .ena(1'b1),
+//    .regcea(1'b1),
+//    .rsta(sys_rst),
+//    .douta(),
+//    //Read Side (65 MHz)
+//    .addrb(avg_addr_read),
+//    .dinb(16'b0),
+//    .clkb(clk_65mhz),
+//    .web(1'b0),
+//    .enb(1'b1),
+//    .rstb(sys_rst),
+//    .regceb(1'b1),
+//    .doutb(black_white_out)
+//  );
 
     assign led[4] = black_white_out;
 

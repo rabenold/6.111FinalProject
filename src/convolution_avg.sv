@@ -42,7 +42,7 @@ module convolution_avg (
 
             end
             
-            if((top_sum+mid_sum+bot_sum)>0) begin
+            if((top_sum+mid_sum+bot_sum)>4) begin
                 pixel_out <= 1;
             end else begin
                 pixel_out <=0;

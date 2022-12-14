@@ -13,7 +13,12 @@ module pixelAverage #(parameter K_SELECT=0)(
   output logic [10:0] hcount_out,
   output logic [9:0] vcount_out
   );
-
+  // always_ff @(posedge clk_in)begin
+  //   data_valid_out <= data_valid_in;
+  //   pixel_data_out <= pixel_data_in;
+  //   hcount_out <= hcount_in;
+  //   vcount_out <= vcount_in;
+  // end
   logic [2:0] buffs;
   logic b_to_c_valid;
   logic [10:0] hcount_buff;
