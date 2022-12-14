@@ -324,6 +324,7 @@ module top_level(
     logic[16:0] small_pix_addr_out_other;
 
     always_ff @(posedge clk_65mhz)begin
+    small_pix_addr_out = (pix_avg_hcount/3*80) + pix_avg_vcount/3;
     if(hcount_pipe[0]==600 && vcount_pipe[0]==250)begin
       small_pix_addr_out_other <= 8480;
     end else if (hcount_pipe[0] >= 600 && hcount_pipe[0] < 680 && vcount_pipe[0] >= 250 && vcount_pipe[0] < 356)begin
@@ -339,7 +340,7 @@ xilinx_true_dual_port_read_first_2_clock_ram #(
    .addra(small_pix_addr_out),
    .clka(clk_65mhz),
    .wea(1'b1),
-   .dina(1'b1),             
+   .dina(thresh_pixel_out),             
    .ena(1'b1),
    .regcea(1'b1),
    .rsta(sys_rst),
@@ -394,14 +395,14 @@ xilinx_true_dual_port_read_first_2_clock_ram #(
 
 
 //displaying averaged img for testing 
-  mirror mirror_s(
-    .clk_in(clk_65mhz),
-    .mirror_in(1'b0),
-    .scale_in(2'b00),
-    .hcount_in(hcount_pipe[2]-400), //
-    .vcount_in(vcount_pipe[2]-450),
-    .pixel_addr_out(small_pix_addr_out)
-  );
+  // mirror mirror_s(
+  //   .clk_in(clk_65mhz),
+  //   .mirror_in(1'b0),
+  //   .scale_in(2'b00),
+  //   .hcount_in(hcount_pipe[2]-400), //
+  //   .vcount_in(vcount_pipe[2]-450),
+  //   .pixel_addr_out(small_pix_addr_out)
+  // );
 
  logic small_full_pixel;
 

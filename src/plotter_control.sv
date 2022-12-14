@@ -42,7 +42,7 @@ module plotter_control(
    assign hz_clk = led_clk_high;
 //generates the 40Hz signal used to operate stepper motors 
     PWM_generator PWM_gen(
-            .clk_65mhz(clk_65mhz),
+            .clk_100mhz(clk_65mhz),
             .rst(rst),
             .clk_high(led_clk_high),
             .enable_step(enable_step)
