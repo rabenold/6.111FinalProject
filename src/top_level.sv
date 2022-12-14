@@ -8,6 +8,8 @@ module top_level(
   input wire btnl,
   input wire btnr,
   input wire cpu_resetn,
+
+
   input wire [7:0] ja, //lower 8 bits of data from camera
   input wire [2:0] jb, //upper three bits from camera (return clock, vsync, hsync)
   output logic jbclk,  //signal we provide to camerafull_pixel_pipe
@@ -16,14 +18,18 @@ module top_level(
   output logic [15:0] led, //just here for the funs
 
   output logic [3:0] vga_r, vga_g, vga_b,
-  output logic vga_hs, vga_vs
+  output logic vga_hs, vga_vs,
+
+///// PLOTTER PMOD
+  output logic [7:0] jc,
+  output logic [7:0] jd
 
   );
 
   //system reset switch linking
   logic sys_rst; //global system reset
   assign sys_rst = !cpu_resetn; //just done to make sys_rst more obvious
-  assign led = sw; //switches drive LED (change if you want)
+  //assign led = sw; //switches drive LED (change if you want)
 
   /* Video Pipeline */
   logic clk_65mhz; //65 MHz clock line
@@ -174,6 +180,8 @@ module top_level(
   assign pix_data = (red>>2)+(red>>5)+(red>>6)+(green>>1)+(green>>4)+(green>>5)+(blue>>3)+(blue>>5);
 
 
+
+
  //------------------ writing grayscaled pix into BRAM ------
   xilinx_true_dual_port_read_first_2_clock_ram #(
     .RAM_WIDTH(11),
@@ -198,6 +206,148 @@ module top_level(
     .regceb(1'b1),
     .doutb(frame_buff)
   );
+
+//pipeline hcount vcount? 
+
+  recover recover_m (
+    .cam_clk_in(cam_clk_in),
+    .valid_pixel_in(valid_pixel),
+    .pixel_in(pix_data),
+    .frame_done_in(frame_done),
+
+    .system_clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .pixel_out(pixel_data_rec),
+    .data_valid_out(data_valid_rec),
+    .hcount_out(hcount_rec),
+    .vcount_out(vcount_rec));
+
+  logic thresh_pixel_out; 
+
+ threshold threshold(
+     .pixel_in(frame_buff),
+     .thresh_mux(1),
+     .pixel_out(thresh_pixel_out)
+ );
+
+
+ logic pixel_avg_valid;
+ logic pixel_avg_data_out;
+ logic [10:0] pix_avg_hcount;
+ logic [9:0] pix_avg_vcount;
+
+ pixelAverage pixelAverage(
+   .clk_in(clk_65mhz),
+   .rst_in(sys_rst),
+   .data_valid_in(valid_pixel_rotate && !sw[15]),
+   .pixel_data_in(thresh_pixel_out),
+   .hcount_in(hcount_rec),
+   .vcount_in(vcount_rec),
+   .data_valid_out(pixel_avg_valid),
+   .pixel_data_out(pixel_avg_data_out),
+   .hcount_out(pix_avg_hcount), 
+   .vcount_out(pix_avg_vcount) 
+ ); 
+  
+    //addr rotate2 
+
+  logic [10:0] pix_avg_hcount_prev;
+  logic [9:0] pix_avg_vcount_prev;
+
+  logic [10:0] pix_avg_hcount_enter;
+  logic [9:0] pix_avg_vcount_enter;
+
+  logic[1:0] vcount_mod;
+  logic[1:0] hcount_mod;
+  logic write_avg;
+  always_ff @(posedge clk_65mhz)begin
+    if(pixel_avg_valid) begin
+      if(pix_avg_hcount ==0 && pix_avg_hcount==0)begin
+        vcount_mod <=2;
+        hcount_mod <=2;
+        pix_avg_hcount_enter <=0;
+        pix_avg_vcount_enter <=0;
+        write_avg <= 0;
+      end else begin
+        pix_avg_hcount_prev <= pix_avg_hcount;
+        pix_avg_vcount_prev <= pix_avg_vcount;
+        
+        if(pix_avg_vcount_prev!=pix_avg_vcount) begin
+          if(vcount_mod==0)begin
+            vcount_mod <= 2;
+          end else begin
+            vcount_mod <= vcount_mod - 2;
+          end
+        end
+
+        if(pix_avg_hcount_prev!=pix_avg_hcount) begin
+          if(hcount_mod==0)begin
+            hcount_mod <= 2;
+          end else begin
+            hcount_mod <= hcount_mod - 2;
+          end
+        end
+
+        if(vcount_mod==1&&hcount_mod==1)begin
+          if(pix_avg_hcount_enter==79)begin
+            pix_avg_hcount_enter <=0;
+            pix_avg_vcount_enter <=pix_avg_vcount_enter+1;
+          end else begin
+            pix_avg_hcount_enter <=pix_avg_hcount_enter+1;
+          end
+          write_avg <= 1;
+        end else begin 
+          write_avg <= 0;
+        end
+
+      end
+    end
+  end
+
+ logic avg_bram_in;
+ logic [16:0] avg_addr;
+ logic avg_write_bram;
+ rotate2_small rotateAvg(
+   .clk_in(clk_65mhz),
+   .hcount_in(pix_avg_hcount_enter),
+   .vcount_in(pix_avg_vcount_enter),
+   .data_valid_in(write_avg),
+   .pixel_in(pixel_avg_data_out),
+   .pixel_out(avg_bram_in),
+   .pixel_addr_out(avg_addr),
+   .data_valid_out(avg_write_bram)
+ );
+
+    logic black_white_out; 
+
+    logic [16:0] small_pix_addr_out;
+
+xilinx_true_dual_port_read_first_2_clock_ram #(
+   .RAM_WIDTH(1),
+   .RAM_DEPTH(106*80))
+   black_white (
+   //Write Side (16.67MHz)
+   .addra(avg_addr),
+   .clka(clk_65mhz),
+   .wea(avg_write_bram && !sw[15]),
+   .dina(avg_bram_in),             
+   .ena(1'b1),
+   .regcea(1'b1),
+   .rsta(sys_rst),
+   .douta(),
+   //Read Side (65 MHz)
+   .addrb(small_pix_addr_out),
+   .dinb(16'b0),
+   .clkb(clk_65mhz),
+   .web(1'b0),
+   .enb(1'b1),
+   .rstb(sys_rst),
+   .regceb(1'b1),
+   .doutb(black_white_out)
+ );
+
+    assign led[4] = black_white_out;
+
 
   // UPDATE PIPELINES
   always_ff @(posedge clk_65mhz)begin
@@ -233,6 +383,32 @@ module top_level(
     end
   end
 
+
+//displaying averaged img for testing 
+  mirror mirror_s(
+    .clk_in(clk_65mhz),
+    .mirror_in(1'b0),
+    .scale_in(2'b00),
+    .hcount_in(hcount_pipe[2]-400), //
+    .vcount_in(vcount_pipe[2]-450),
+    .pixel_addr_out(small_pix_addr_out)
+  );
+ logic small_full_pixel;
+
+  scale scale_s(
+    .scale_in(2'b00),
+    .hcount_in(hcount_pipe[2]-400), //TODO: needs to use pipelined signal (PS2)
+    .vcount_in(vcount_pipe[2]-450), //TODO: needs to use pipelined signal (PS2)
+    .frame_buff_in(frame_buff),
+    .cam_out(small_full_pixel)
+    );
+
+   
+    logic [3:0] bw_pix_out; 
+    assign bw_pix_out = small_full_pixel ? 4'b111 : 4'b000;
+
+
+//initial camera image 
   mirror mirror_m(
     .clk_in(clk_65mhz),
     .mirror_in(1'b0),
@@ -250,62 +426,70 @@ module top_level(
     .cam_out(full_pixel)
     );
 
+  logic pixel_value_in; 
+  logic ready_next_pixel;
 
-  logic [3:0] gray_out = full_pixel[4:1];
-  logic [11:0] pixel_out;
-  logic state_1;
-  start_screen start_screen(
-       .rst(sys_rst),
-       .clk(clk_65mhz),
-       .hcount(hcount_pipe[2]),
-       .vcount(vcount_pipe[2]),
-       .cam_img(gray_out),
-       .sw_state(sw[15]),
-       .btnc_pressed(btnc),
-       .pixel_out(pixel_out),
-       .state_1_over(state_1)
-   );
+  logic [3:0] jc_out;
+  logic [3:0] jd_out;
+  logic [15:0] led_out;
+  logic hz_clk;
+  logic drawing_done;
+  assign pixel_value_in = sw[2]; 
 
-// state_1 == 1 indicates the we are ready to start processing 
+ /* logic [3:0] next_pixel_value; 
+*/
 
+  logic enable_plotter;
+  assign enable_plotter = sw[14];
 
-  // logic [11:0] display_screen_pixel_out;
-  // logic [2:0] display_screen_select_out;
-  // display_filters display_filters(
-  //   .clk_in(clk_65mhz),
-  //   .rst_in(sys_rst),
-  //   .ready(state_1),
-  //   .hcount_in(hcount_pipe[2]),
-  //   .vcount_in(vcount_pipe[2]),
-  //   .left_in(btnl),
-  //   .right_in(btnr),
-  //   .frame_buff_in(frame_buff),
-  //   .pixel_out(display_screen_pixel_out),
-  //   .select_out(display_screen_select_out)
-  //   );
+  plotter_control plotter_control( 
+    .clk_65mhz(clk_65mhz),
+    .sw(sw),
+    .cpu_resetn(cpu_resetn),
+    .pixel_value_in(pixel_value_in),
+    .enable_plotter(enable_plotter), 
+
+    .ready_next_pixel(ready_next_pixel),  
+    .hz_clk(hz_clk), 
+    .jc_out(jc_out),
+    .jd_out(jd_out),
+    .led_out(led_out),
+    .drawing_done(drawing_done)
+  );
+
+assign led[0] = ready_next_pixel; 
 
 
+
+
+//x stepper PMODs 
+assign jc[1] = jc_out[0];
+assign jc[5] = jc_out[1];
+assign jc[2] = jc_out[2];
+assign jc[6] = jc_out[3];
+
+//y stepper PMODs
+assign jd[1] = jd_out[0];
+assign jd[5] = jd_out[1];
+assign jd[2] = jd_out[2];
+assign jd[6] = jd_out[3];
+
+assign led[15] = hz_clk;
+//assign led[0] = drawing_done;
+assign led[2] = enable_plotter; 
 
 // 
 // use this logic for writing to vga outside of state 1
-   logic [11:0] vga_pixel; 
 
+  assign mux_pixel = {full_pixel[15:12],full_pixel[10:7],full_pixel[4:1]};
   always_ff @(posedge clk_65mhz)begin
-        //if still in state 1 displaying gray cam pix and sprites 
-      if (!state_1)begin 
-           vga_r <= ~blank_pipe[3]?(gray_out | pixel_out):0; //TODO: needs to use pipelined signal (PS6)
-           vga_g <= ~blank_pipe[3]?(gray_out | pixel_out):0;  //TODO: needs to use pipelined signal (PS6)
-           vga_b <= ~blank_pipe[3]?(gray_out | pixel_out):0;  //TODO: needs to use pipelined signal (PS6)
-      end else
-      begin
-           vga_r <= ~blank_pipe[3]?vga_pixel:0; //TODO: needs to use pipelined signal (PS6)
-           vga_g <= ~blank_pipe[3]?vga_pixel:0;  //TODO: needs to use pipelined signal (PS6)
-           vga_b <= ~blank_pipe[3]?vga_pixel:0;  //TODO: needs to use pipelined signal (PS6)
-      end
+    vga_r <= ~blank_pipe[3]?(mux_pixel[3:0]|bw_pix_out):0; //TODO: needs to use pipelined signal (PS6)
+    vga_g <= ~blank_pipe[3]?(mux_pixel[3:0]|bw_pix_out):0;  //TODO: needs to use pipelined signal (PS6)
+    vga_b <= ~blank_pipe[3]?(mux_pixel[3:0]|bw_pix_out):0;  //TODO: needs to use pipelined signal (PS6)
   end
   assign vga_hs = ~hsync_pipe[4];  //TODO: needs to use pipelined signal (PS7)
   assign vga_vs = ~vsync_pipe[4];  //TODO: needs to use pipelined signal (PS7)
 
 endmodule
-`default_nettype wire 
 
+`default_nettype wire 
