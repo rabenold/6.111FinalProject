@@ -421,7 +421,7 @@ module top_level(
   logic [9:0] ridge_vcount;
   logic [6:0] ridge_pixel;
 
-  filter #(.K_SELECT(3)) ridgeFilt(
+  filter #(.K_SELECT(1)) ridgeFilt(
     .clk_in(clk_65mhz),
     .rst_in(sys_rst),
     .pixel_data_in(pixel_data_rec),
@@ -666,9 +666,9 @@ module top_level(
            vga_b <= ~blank_pipe[3] ? (gray_out | screen_mod_pixel_out) : 0;
       end
       else if (start_over & ~filters_over & ~threshold_over) begin
-           vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0; 
-           vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0;  
-           vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose) : 0; 
+           vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[5:2]) : 0; 
+           vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[5:2]) : 0;  
+           vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[5:2]) : 0; 
       end
       else if (start_over & filters_over & ~threshold_over) begin
            vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | threshold_pixel_choose) : 0; 

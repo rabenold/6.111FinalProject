@@ -8,10 +8,10 @@ module buffer (
 
     input wire [10:0] hcount_in, //current hcount being read
     input wire [9:0] vcount_in, //current vcount being read
-    input wire [15:0] pixel_data_in, //incoming pixel
+    input wire [6:0] pixel_data_in, //incoming pixel
     input wire data_valid_in, //incoming  valid data signal
 
-    output logic [2:0][15:0] line_buffer_out, //output pixels of data (blah make this packed)
+    output logic [2:0][6:0] line_buffer_out, //output pixels of data (blah make this packed)
     output logic [10:0] hcount_out, //current hcount being read
     output logic [9:0] vcount_out, //current vcount being read
     output logic data_valid_out //valid data out signal
@@ -21,9 +21,9 @@ module buffer (
   logic [3:0] bram_to_write;
   assign bram_to_write = {bram0w, bram1w, bram2w, bram3w};
 
-  logic [15:0] bram0_din, bram1_din, bram2_din, bram3_din;
-  logic [15:0] bram0_dout, bram1_dout, bram2_dout, bram3_dout;
-  logic [15:0] bram0_dout_b, bram1_dout_b, bram2_dout_b, bram3_dout_b;
+  logic [6:0] bram0_din, bram1_din, bram2_din, bram3_din;
+  logic [6:0] bram0_dout, bram1_dout, bram2_dout, bram3_dout;
+  logic [6:0] bram0_dout_b, bram1_dout_b, bram2_dout_b, bram3_dout_b;
 
   logic new_line;
 
