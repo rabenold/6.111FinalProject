@@ -301,9 +301,9 @@ module top_level(
   // assign dither_read = (hcount_pipe[0]-50)*240 + (vcount_pipe[0]-32);
 
   always_ff @(posedge clk_65mhz)begin
-    if(hcount_pipe[0]==390 && vcount_pipe[0]==32)begin
+    if(hcount_pipe[0]==390 && vcount_pipe[0]==26)begin
       dither_read <= 76799;
-    end else if (hcount_pipe[0] >= 50 && hcount_pipe[0] < 290 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352)begin
+    end else if (hcount_pipe[0] >= 50 && hcount_pipe[0] < 290 && vcount_pipe[0] >= 26 && vcount_pipe[0] < 346)begin
       dither_read <= dither_read - 1;
     end
   end
@@ -371,9 +371,9 @@ module top_level(
   logic [16:0] wave_read = 0;
 
   always_ff@(posedge clk_65mhz) begin
-    if(hcount_pipe[0] == 390 && vcount_pipe[0] == 32)begin
+    if(hcount_pipe[0] == 390 && vcount_pipe[0] == 26)begin
       wave_read <=76799;
-    end else if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352) begin
+    end else if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 26 && vcount_pipe[0] < 346) begin
       wave_read <= wave_read - 1;
     end
   end
@@ -438,9 +438,9 @@ module top_level(
 
   logic [16:0] ridge_read = 0;
   always_ff@(posedge clk_65mhz) begin
-    if(hcount_pipe[0] == 730 && vcount_pipe[0] == 352)begin
+    if(hcount_pipe[0] == 730 && vcount_pipe[0] == 346)begin
       ridge_read <=76799;
-    end else if (hcount_pipe[0] >= 730 && hcount_pipe[0] < 970 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352) begin
+    end else if (hcount_pipe[0] >= 730 && hcount_pipe[0] < 970 && vcount_pipe[0] >= 26 && vcount_pipe[0] < 346) begin
       ridge_read <= ridge_read - 1;
     end
   end
