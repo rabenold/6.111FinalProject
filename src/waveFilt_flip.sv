@@ -33,9 +33,9 @@ module waveFilt_flip (
     // assign polyMid = (hcount_sign-120)
     always_comb begin 
         if (data_valid_in)begin
-            polyTop = (vcount_sign - 320)>>>3;
+            polyTop = (vcount_sign - 320)>>>4;
             polyMid = (vcount_sign - 160)>>>4;
-            polyBot = (-vcount_sign)>>>3;
+            polyBot = (-vcount_sign)>>>4;
 
             if(vcount_in>160)begin
                 finalOffset = polyMid * polyTop + $signed({1'b0, hcount_in});

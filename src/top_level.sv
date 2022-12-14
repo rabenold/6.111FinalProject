@@ -579,7 +579,7 @@ module top_level(
   always_ff@(posedge clk_65mhz) begin
     if(hcount_pipe[0] == 390 && vcount_pipe[0] == 446)begin
       wavef_read <=76799;
-    end else if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 446 && vcount_pipe[0] < 766) begin
+    end else if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 416 && vcount_pipe[0] < 736) begin
       wavef_read <= wavef_read - 1;
     end
   end
@@ -628,7 +628,11 @@ module top_level(
       end
       else if(hcount_pipe[2] >= 390 && hcount_pipe[2] < 630 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
         filter_pixel_choose = wavef_out;
-      end else begin
+      end 
+      else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
+        filter_pixel_choose = ~id_out;
+      end 
+      else begin
         filter_pixel_choose = 0;
       end
     end
@@ -730,7 +734,7 @@ module top_level(
       else if (start_over & ~filters_over & ~threshold_over) begin
            vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[6:2]) : 0; 
            vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[6:2]) : 0;  
-           vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[5:2]) : 0; 
+           vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[6:2]) : 0; 
       end
       else if (start_over & filters_over & ~threshold_over) begin
            vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | threshold_pixel_choose) : 0; 
