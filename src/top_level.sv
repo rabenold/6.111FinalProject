@@ -369,19 +369,6 @@ module top_level(
   end
 
   logic [16:0] wave_read = 0;
-  // assign wave_read = (hcount_pipe[0]-390)*240 + (vcount_pipe[0]-32);
-
-  // always_ff @(posedge clk_65mhz)begin
-  //   if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 32 && vcount_pipe[0] < 352)begin
-  //     if(vcount_pipe[0] > 232)begin
-  //       wave_read = 48000 + (vcount_pipe[0] - 232)*240 + hcount_pipe[0] - 390;
-  //     end else if (vcount_pipe[0] > 132) begin 
-  //       wave_read = 24000 + (vcount_pipe[0] - 132)*240 + hcount_pipe[0] - 390;
-  //     end begin
-  //       wave_read = ((vcount_pipe[0]-32)*240) + hcount_pipe[0]-390;
-  //     end
-  //   end
-  // end
 
   always_ff@(posedge clk_65mhz) begin
     if(hcount_pipe[0] == 390 && vcount_pipe[0] == 32)begin
@@ -421,7 +408,7 @@ module top_level(
   logic [9:0] ridge_vcount;
   logic [6:0] ridge_pixel;
 
-  filter #(.K_SELECT(1)) ridgeFilt(
+  filter #(.K_SELECT(3)) ridgeFilt(
     .clk_in(clk_65mhz),
     .rst_in(sys_rst),
     .pixel_data_in(pixel_data_rec),
@@ -483,73 +470,146 @@ module top_level(
     .doutb(ridge_out)
   );
 
+  
 
-  // logic id_valid;
-  // logic [10:0] id_hcount;
-  // logic [9:0] id_vcount;
-  // logic [6:0] id_pixel;
+  logic id_valid;
+  logic [10:0] id_hcount;
+  logic [9:0] id_vcount;
+  logic [6:0] id_pixel;
 
-  // filter #(.K_SELECT(0)) idFilt(
-  //   .clk_in(clk_65mhz),
-  //   .rst_in(sys_rst),
-  //   .pixel_data_in(pixel_data_rec),
-  //   .hcount_in(hcount_rec),
-  //   .vcount_in(vcount_rec),
-  //   .data_valid_in(data_valid_rec),
+  filter #(.K_SELECT(0)) idFilt(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .pixel_data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
 
-  //   .data_valid_out(id_valid),
-  //   .hcount_out(id_hcount),
-  //   .vcount_out(id_vcount),
-  //   .pixel_data_out(id_pixel)
-  //   );
+    .data_valid_out(id_valid),
+    .hcount_out(id_hcount),
+    .vcount_out(id_vcount),
+    .pixel_data_out(id_pixel)
+    );
 
     
-  // logic[16:0] id_addr;
-  // always_comb begin
-  //   if(id_vcount > 160)begin
-  //     id_addr = 38400 + (id_vcount - 160)*240 + id_hcount;
-  //   end else begin
-  //     id_addr = (id_vcount*240) + id_hcount;
-  //   end
-  // end
 
-  // logic [16:0] id_read = 0;
-  // always_ff @(posedge clk_65mhz)begin
-  //   if (hcount_pipe[0] >= 50 && hcount_pipe[0] < 290 && vcount_pipe[0] >= 416 && vcount_pipe[0] < 736)begin
-  //     if(vcount_pipe[0] > 576)begin
-  //       id_read = 38400 + (vcount_pipe[0] - 576)*240 + hcount_pipe[0] - 290;
-  //     end else begin
-  //       id_read = ((vcount_pipe[0]-416)*240) + hcount_pipe[0]-290;
-  //     end
-  //   end
-  // end
+  logic[16:0] id_addr;
+  // assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
 
-  // logic[6:0] id_out;
-  // xilinx_true_dual_port_read_first_2_clock_ram #(
-  //   .RAM_WIDTH(7),
-  //   .RAM_DEPTH(320*240))
-  //   id_frame (
-  //   //Write Side (16.67MHz)
-  //   .addra(id_addr),
-  //   .clka(clk_65mhz),
-  //   .wea(id_valid && !sw[15]),
-  //   .dina(id_pixel),             
-  //   .ena(1'b1),
-  //   .regcea(1'b1),
-  //   .rsta(sys_rst),
-  //   .douta(),
-  //   //Read Side (65 MHz)
-  //   .addrb(id_read),
-  //   .dinb(7'b0),
-  //   .clkb(clk_65mhz),
-  //   .web(1'b0),
-  //   .enb(1'b1),
-  //   .rstb(sys_rst),
-  //   .regceb(1'b1),
-  //   .doutb(id_out)
-  // );
+  always_comb begin
+    if(id_hcount > 200)begin
+      id_addr = 64000 + (id_hcount - 200)*240 + id_vcount;
+    end else if (id_hcount > 100)begin
+      id_addr = 32000 + (id_hcount - 100)*240 + id_vcount;
+    end begin
+      id_addr = (id_hcount*240) + id_vcount;
+    end
+  end
 
+  logic [16:0] id_read = 0;
+  always_ff@(posedge clk_65mhz) begin
+    if(hcount_pipe[0] == 50 && vcount_pipe[0] == 416)begin
+      id_read <=76799;
+    end else if (hcount_pipe[0] >= 50 && hcount_pipe[0] < 290 && vcount_pipe[0] >= 416 && vcount_pipe[0] < 736) begin
+      id_read <= id_read - 1;
+    end
+  end
+
+  logic[6:0] id_out;
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    id_frame (
+    //Write Side (16.67MHz)
+    .addra(id_addr),
+    .clka(clk_65mhz),
+    .wea(id_valid && !sw[15]),
+    .dina(id_pixel),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    .addrb(id_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(id_out)
+  );
+
+
+  logic wavef_valid;
+  logic [10:0] wavef_hcount;
+  logic [9:0] wavef_vcount;
+  logic [6:0] wavef_pixel;
+
+  waveFilt_flip waveFilt_flip(
+    .clk_in(clk_65mhz),
+    .rst_in(sys_rst),
+    .data_in(pixel_data_rec),
+    .hcount_in(hcount_rec),
+    .vcount_in(vcount_rec),
+    .data_valid_in(data_valid_rec),
+
+    .data_valid_out(wavef_valid),
+    .hcount_out(wavef_hcount),
+    .vcount_out(wavef_vcount),
+    .pixel_out(wavef_pixel)
+    );
+
+    
+  logic[16:0] wavef_addr;
+  // assign wave_addr = (wave_vcount*240) + wave_hcount;
+
+  always_comb begin
+    if(wavef_hcount > 200)begin
+      wavef_addr = 64000 + (wavef_hcount - 200)*240 + wavef_vcount;
+    end else if (ridge_hcount > 100)begin
+      wavef_addr = 32000 + (wavef_hcount - 100)*240 + wavef_vcount;
+    end begin
+      wavef_addr = (wavef_hcount*240) + wavef_vcount;
+    end
+  end
+
+  logic [16:0] wavef_read = 0;
+
+  always_ff@(posedge clk_65mhz) begin
+    if(hcount_pipe[0] == 390 && vcount_pipe[0] == 446)begin
+      wavef_read <=76799;
+    end else if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 446 && vcount_pipe[0] < 766) begin
+      wavef_read <= wavef_read - 1;
+    end
+  end
   
+  logic [6:0] wavef_out;
+  xilinx_true_dual_port_read_first_2_clock_ram #(
+    .RAM_WIDTH(7),
+    .RAM_DEPTH(320*240))
+    wavef_frame (
+    //Write Side (16.67MHz)
+    .addra(wavef_addr),
+    .clka(clk_65mhz),
+    .wea(wavef_valid && !sw[15]),
+    .dina(wavef_pixel),             
+    .ena(1'b1),
+    .regcea(1'b1),
+    .rsta(sys_rst),
+    .douta(),
+    //Read Side (65 MHz)
+    .addrb(wavef_read),
+    .dinb(7'b0),
+    .clkb(clk_65mhz),
+    .web(1'b0),
+    .enb(1'b1),
+    .rstb(sys_rst),
+    .regceb(1'b1),
+    .doutb(wavef_out)
+  );
+
+
   logic[6:0] filter_pixel_choose;
   logic [6:0] threshold_pixel_choose;
   always_comb begin
@@ -563,10 +623,12 @@ module top_level(
       else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
         filter_pixel_choose = ridge_out;
       end
-      // else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
-      //   filter_pixel_choose = id_out;
-      // end
-      else begin
+      else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
+        filter_pixel_choose = id_out;
+      end
+      else if(hcount_pipe[2] >= 390 && hcount_pipe[2] < 630 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
+        filter_pixel_choose = wavef_out;
+      end else begin
         filter_pixel_choose = 0;
       end
     end
@@ -647,7 +709,7 @@ module top_level(
           chosen_filtered_image <= ridge_out;
         end
         3'b011: begin
-          chosen_filtered_image <= dither_out; //CHANGE
+          chosen_filtered_image <= id_out;
         end
         3'b100: begin
           chosen_filtered_image <= dither_out; //CHANGE
@@ -666,8 +728,8 @@ module top_level(
            vga_b <= ~blank_pipe[3] ? (gray_out | screen_mod_pixel_out) : 0;
       end
       else if (start_over & ~filters_over & ~threshold_over) begin
-           vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[5:2]) : 0; 
-           vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[5:2]) : 0;  
+           vga_r <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[6:2]) : 0; 
+           vga_g <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[6:2]) : 0;  
            vga_b <= ~blank_pipe[3] ? (screen_mod_pixel_out | filter_pixel_choose[5:2]) : 0; 
       end
       else if (start_over & filters_over & ~threshold_over) begin
