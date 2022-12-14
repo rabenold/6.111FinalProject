@@ -33,22 +33,22 @@ module waveFilt (
     // assign polyMid = (hcount_sign-120)
     always_comb begin 
         if (data_valid_in)begin
-            polyTop = (hcount_sign - 240)>>>3;
-            polyMid = (hcount_sign - 120)>>>4;
+            polyTop = (hcount_sign - 320)>>>3;
+            polyMid = (hcount_sign - 160)>>>4;
             polyBot = (-hcount_sign)>>>3;
 
-            if(hcount_in>120)begin
+            if(hcount_in>160)begin
                 finalOffset = polyMid * polyTop + $signed({1'b0, vcount_in});
             end else begin 
                 finalOffset = polyMid * polyBot + $signed({1'b0, vcount_in});
             end
 
-            if(finalOffset > 320) begin
-                vcount_out = finalOffset - 320;
+            if(finalOffset > 240) begin
+                vcount_out = finalOffset - 240;
             end else if(finalOffset > 0) begin
                 vcount_out = finalOffset;
             end else begin 
-                vcount_out = finalOffset + 320;
+                vcount_out = finalOffset + 240;
             end
             // if(hcount_in > 120)begin
             // end else begin

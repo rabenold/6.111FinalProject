@@ -361,7 +361,7 @@ module top_level(
   always_comb begin
     if(wave_hcount > 200)begin
       wave_addr = 64000 + (wave_hcount - 200)*240 + wave_vcount;
-    end else if (ridge_hcount > 100)begin
+    end else if (wave_hcount > 100)begin
       wave_addr = 32000 + (wave_hcount - 100)*240 + wave_vcount;
     end begin
       wave_addr = (wave_hcount*240) + wave_vcount;
@@ -495,7 +495,7 @@ module top_level(
 
   logic[16:0] id_addr;
   // assign ridge_addr = (ridge_vcount*240) + ridge_hcount;
-
+  
   always_comb begin
     if(id_hcount > 200)begin
       id_addr = 64000 + (id_hcount - 200)*240 + id_vcount;
@@ -507,11 +507,21 @@ module top_level(
   end
 
   logic [16:0] id_read = 0;
+  logic [16:0] id_read1 = 0;
+  logic [16:0] id_read2 = 0;
   always_ff@(posedge clk_65mhz) begin
     if(hcount_pipe[0] == 50 && vcount_pipe[0] == 416)begin
-      id_read <=76799;
+      id_read1 <= 76799;
+      id_read <= 76799;
     end else if (hcount_pipe[0] >= 50 && hcount_pipe[0] < 290 && vcount_pipe[0] >= 416 && vcount_pipe[0] < 736) begin
-      id_read <= id_read - 1;
+      id_read1 <= id_read1- 1;
+      id_read <= id_read1 - 1;
+    end else if(hcount_pipe[0] == 730 && vcount_pipe[0] == 416)begin
+      id_read2 <= 76799;
+      id_read <= 76799;
+    end else if (hcount_pipe[0] >= 730 && hcount_pipe[0] < 970 && vcount_pipe[0] >= 416 && vcount_pipe[0] < 736) begin
+      id_read2 <= id_read2 - 1;
+      id_read <= id_read2 - 1;
     end
   end
 
@@ -579,7 +589,7 @@ module top_level(
   always_ff@(posedge clk_65mhz) begin
     if(hcount_pipe[0] == 390 && vcount_pipe[0] == 446)begin
       wavef_read <=76799;
-    end else if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 416 && vcount_pipe[0] < 736) begin
+    end else if (hcount_pipe[0] >= 390 && hcount_pipe[0] < 630 && vcount_pipe[0] >= 446 && vcount_pipe[0] < 766) begin
       wavef_read <= wavef_read - 1;
     end
   end
@@ -630,7 +640,7 @@ module top_level(
         filter_pixel_choose = wavef_out;
       end 
       else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
-        filter_pixel_choose = ~id_out;
+        filter_pixel_choose = ~id_out; 
       end 
       else begin
         filter_pixel_choose = 0;

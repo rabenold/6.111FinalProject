@@ -7,11 +7,10 @@ module addressing_threshold (
     input wire rst_in,
     input wire [10:0] hcount_in,
     input wire [9:0] vcount_in,
-
-    output logic [16:0] address_1;
-    output logic [16:0] address_2;
-    output logic [16:0] address_3;
-    output logic [16:0] address_4;
+    output logic [16:0] address_1,
+    output logic [16:0] address_2,
+    output logic [16:0] address_3,
+    output logic [16:0] address_4
 );
 
     always_ff @(posedge clk_in) begin
