@@ -563,9 +563,9 @@ module top_level(
       else if(hcount_pipe[2] >= 730 && hcount_pipe[2] < 970 && vcount_pipe[2] >= 26 && vcount_pipe[2] < 346)begin
         filter_pixel_choose = ridge_out;
       end
-      else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
-        // filter_pixel_choose = id_out;
-      end
+      // else if(hcount_pipe[2] >= 50 && hcount_pipe[2] < 290 && vcount_pipe[2] >= 446 && vcount_pipe[2] < 766)begin
+      //   filter_pixel_choose = id_out;
+      // end
       else begin
         filter_pixel_choose = 0;
       end
@@ -647,7 +647,7 @@ module top_level(
           chosen_filtered_image <= ridge_out;
         end
         3'b011: begin
-          // chosen_filtered_image <= id_out;
+          chosen_filtered_image <= dither_out; //CHANGE
         end
         3'b100: begin
           chosen_filtered_image <= dither_out; //CHANGE
