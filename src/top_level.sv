@@ -286,6 +286,29 @@ module top_level(
 
 
 
+
+  logic enable_plotter;
+  assign enable_plotter = sw[14];
+
+  plotter_control plotter_control( 
+    .clk_65mhz(clk_65mhz),
+    .sw(sw),
+    .cpu_resetn(cpu_resetn),
+    .pixel_value_in(pixel_value_in),
+    .enable_plotter(enable_plotter), 
+
+    .ready_next_pixel(ready_next_pixel),  
+    .hz_clk(hz_clk), 
+    .jc_out(jc_out),
+    .jd_out(jd_out),
+    .led_out(led_out),
+    .drawing_done(drawing_done)
+  );
+
+//assign led[0] = ready_next_pixel; 
+
+
+
 // 
 // use this logic for writing to vga outside of state 1
    logic [11:0] vga_pixel; 
